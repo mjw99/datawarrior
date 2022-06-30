@@ -1,2 +1,0 @@
-java -classpath "datawarrior.jar:./lib/*" com.actelion.research.datawarrior.DataWarriorLinux
-

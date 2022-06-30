@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.actelion.research.datawarrior</groupId>
+	<artifactId>datawarrior</artifactId>
+	<version>1.0-SNAPSHOT</version>
+
+	<name>datawarrior</name>
+	<url>https://github.com/thsa/datawarrior</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+                <!-- Use:
+
+                     mvn versions:display-dependency-updates
+
+		to check for updates for these below -->
+
+		<openchemlib.version>2022.5.0</openchemlib.version>
+		<fxmolviewer.version>0.0.1-SNAPSHOT</fxmolviewer.version>
+		<substance.version>7.0</substance.version>
+		<opsin.version>2.6.0</opsin.version>
+		<jna-inchi.version>1.1</jna-inchi.version>
+		<openjfx.version>11.0.2</openjfx.version>
+		<batik.version>1.14</batik.version>
+		<vecmath.version>1.5.2</vecmath.version>
+		<jep.version>2.4.2</jep.version>
+		<commons-math.version>2.2</commons-math.version>
+		<tsne.version>v2.6.3</tsne.version>
+		<orange-extensions.version>1.3.0</orange-extensions.version>
+		<json.version>20220320</json.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math</artifactId>
+			<version>${commons-math.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.actelion.research</groupId>
+			<artifactId>openchemlib</artifactId>
+			<version>${openchemlib.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openmolecules.fx</groupId>
+			<artifactId>fxmolviewer</artifactId>
+			<version>${fxmolviewer.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>${openjfx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-swing</artifactId>
+			<version>${openjfx.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-web</artifactId>
+			<version>${openjfx.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>jep</artifactId>
+			<version>${jep.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.vecmath</groupId>
+			<artifactId>vecmath</artifactId>
+			<version>${vecmath.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.xmlgraphics</groupId>
+			<artifactId>batik-svggen</artifactId>
+			<version>${batik.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.xmlgraphics</groupId>
+			<artifactId>batik-swing</artifactId>
+			<version>${batik.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.xmlgraphics</groupId>
+			<artifactId>batik-transcoder</artifactId>
+			<version>${batik.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>${json.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.insubstantial</groupId>
+			<artifactId>substance</artifactId>
+			<version>${substance.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.insubstantial</groupId>
+			<artifactId>laf-widget</artifactId>
+			<version>${substance.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.insubstantial</groupId>
+			<artifactId>laf-plugin</artifactId>
+			<version>${substance.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.dan2097</groupId>
+			<artifactId>jna-inchi-all</artifactId>
+			<version>${jna-inchi.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>uk.ac.cam.ch.opsin</groupId>
+			<artifactId>opsin-core</artifactId>
+			<version>${opsin.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.lejon</groupId>
+			<artifactId>T-SNE-Java</artifactId>
+			<version>${tsne.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.yuvimasory</groupId>
+			<artifactId>orange-extensions</artifactId>
+			<version>${orange-extensions.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.3.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
+								</transformer>
+							</transformers>
+
+							<filters>
+								<filter>
+									<!-- filter out signature files from signed dependencies, else repackaging 
+										fails with security ex -->
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>3.2.0</version>
+			</plugin>
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.2.0</version>
+			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.10.1</version>
+			</plugin>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M7</version>
+			</plugin>
+		</plugins>
+	</build>
+</project>
