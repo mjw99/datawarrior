@@ -2,7 +2,7 @@ package com.actelion.research.datawarrior.chem;
 
 import com.actelion.research.chem.Molecule;
 import com.actelion.research.chem.StereoMolecule;
-import com.github.dan2097.jnainchi.*;
+import io.github.dan2097.jnainchi.*;
 
 import java.util.Arrays;
 
@@ -145,7 +145,7 @@ public class InchiBuilder {
 						a[i] = inchiAtom[c[i]];
 
 					InchiStereoParity inchiParity = (parity == Molecule.cAtomParity1) ? InchiStereoParity.EVEN : InchiStereoParity.ODD;
-					input.addStereo(new InchiStereo(a, inchiAtom[atom], InchiStereoType.Tetrahedral, inchiParity));
+					input.addStereo(InchiStereo.createTetrahedralStereo(inchiAtom[atom], a[0], a[1], a[2], a[3], inchiParity));
 					}
 				}
 			}
@@ -169,7 +169,7 @@ public class InchiBuilder {
 
 				InchiStereoParity inchiParity = (parity == Molecule.cBondParityEor1) ? InchiStereoParity.EVEN
 						: (parity == Molecule.cBondParityZor2) ? InchiStereoParity.ODD : InchiStereoParity.UNKNOWN;
-				input.addStereo(new InchiStereo(a, null, InchiStereoType.DoubleBond, inchiParity));
+				input.addStereo(InchiStereo.createDoubleBondStereo(a[0], a[1], a[2], a[3], inchiParity));
 				}
 			}
 
