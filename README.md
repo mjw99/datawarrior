@@ -40,7 +40,7 @@ mvn clean package
 
 ### How to run the project
 ```
-java -jar ./target/datawarrior-1.0-SNAPSHOT-shaded.jar
+java -jar ./target/datawarrior-*-SNAPSHOT-shaded.jar
 ```
 
 ### Platform Integration
