@@ -27,10 +27,21 @@ The most important ones are:
 git clone https://github.com/thsa/datawarrior.git
 
 ### How to build the project
-On Linux or Macintosh just run the 'buildDataWarrior' shell script.
+```
+git clone https://github.com/mjw99/fxmolviewer/
+cd fxmolviewer
+mvn clean install
+
+cd ..
+git clone https://github.com/mjw99/datawarrior
+cd datawarrior
+mvn clean package
+```
 
 ### How to run the project
-After building the project just run the 'runDataWarrior' shell script.
+```
+java -jar ./target/datawarrior-1.0-SNAPSHOT-shaded.jar
+```
 
 ### Platform Integration
 Ideally, *DataWarrior* should be installed in a platform specific way that registers its file
