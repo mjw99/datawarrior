@@ -24,4 +24,4 @@ jobs:
       - name: Install fxmolviewer
         run: git clone https://github.com/mjw99/fxmolviewer/ && cd fxmolviewer && mvn -B clean install && cd ..
       - name: Build with Maven
-        run: mvn -B clean test javadoc:javadoc package
+        run: mvn -B clean test package
