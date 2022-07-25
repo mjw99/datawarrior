@@ -32,7 +32,7 @@ public class JFXPDBViewer extends JFXPanel {
 				Pane pane = new Pane();
 				pane.getChildren().add(mScene);
 
-				String css = getClass().getResource("/resources/molviewer.css").toExternalForm();
+				String css = getClass().getResource("/molviewer.css").toExternalForm();
 				Scene scene = new Scene(pane, 512, 384, true, SceneAntialiasing.BALANCED);
 				scene.getStylesheets().add(css);
 				mScene.widthProperty().bind(scene.widthProperty());

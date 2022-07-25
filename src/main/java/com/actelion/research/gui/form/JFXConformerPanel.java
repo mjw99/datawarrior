@@ -16,10 +16,7 @@ import org.openmolecules.fx.surface.SurfaceMesh;
 import org.openmolecules.fx.viewer3d.*;
 import org.openmolecules.mesh.MoleculeSurfaceAlgorithm;
 import org.openmolecules.render.MoleculeArchitect;
-import sun.awt.AppContext;
-import sun.awt.SunToolkit;
 
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
@@ -63,7 +60,7 @@ public class JFXConformerPanel extends JFXPanel {
 				scene = new Scene(sws, width, height, true, SceneAntialiasing.BALANCED);
 			}
 
-			String css = getClass().getResource("/resources/molviewer.css").toExternalForm();
+			String css = getClass().getResource("/molviewer.css").toExternalForm();
 			scene.getStylesheets().add(css);
 			mScene.widthProperty().bind(scene.widthProperty());
 			mScene.heightProperty().bind(scene.heightProperty());
@@ -93,24 +90,6 @@ public class JFXConformerPanel extends JFXPanel {
 	 */
 	public void setPopupMenuController(V3DPopupMenuController controller) {
 		mController = controller;
-	}
-
-	// this fixes an issue, where the JFXPanel, if not in focus does not properly handle popup menus
-	// This is supposed to be fixed in Java9. Thus remove this when moving to Java9 or later. TODO
-	@Override
-	protected void processMouseEvent(MouseEvent e) {
-		try {
-			if ((e.getID() == MouseEvent.MOUSE_PRESSED)&& (e.getButton() != MouseEvent.BUTTON1)) {
-				if (!hasFocus()) {
-					requestFocus();
-					AppContext context = SunToolkit.targetToAppContext(this);
-					if (context != null) {
-						SunToolkit.postEvent(context, e);
-					}
-				}
-			}
-		} catch (Exception ex) {}
-		super.processMouseEvent(e);
 	}
 
 	/**
