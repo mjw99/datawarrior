@@ -21,6 +21,7 @@ package com.actelion.research.table.view;
 import com.actelion.research.chem.*;
 import com.actelion.research.chem.io.CompoundTableConstants;
 import com.actelion.research.datawarrior.DataWarrior;
+import com.actelion.research.datawarrior.Depictor3D;
 import com.actelion.research.gui.generic.GenericRectangle;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.gui.swing.SwingCursorHelper;
