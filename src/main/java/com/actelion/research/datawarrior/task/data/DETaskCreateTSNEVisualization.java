@@ -503,7 +503,7 @@ public class DETaskCreateTSNEVisualization extends ConfigurableTask {
 // on 04-Apr-2019 arofab suggested a change in BarnesHutTSne that seems to solve the issue. Thus going back to parallel; TLS 09-Apr-2019
 
 			TSneConfiguration config = TSneUtils.buildConfig(X, outputDims, initial_dims, perplexity, iterations);
-			Y = tsne.tsne(config);
+			Y = tsne.tsne(config, this);
 			}
 		catch (Exception e) {
 			showErrorMessage(e.getMessage());
