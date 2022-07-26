@@ -40,13 +40,6 @@
 		<mssql-jdbc.version>10.2.1.jre11</mssql-jdbc.version>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>jitpack.io</id>
-			<url>https://jitpack.io</url>
-		</repository>
-	</repositories>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -174,12 +167,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.github.lejon</groupId>
-			<artifactId>T-SNE-Java</artifactId>
-			<version>${tsne.version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>com.yuvimasory</groupId>
 			<artifactId>orange-extensions</artifactId>
 			<version>${orange-extensions.version}</version>
@@ -189,6 +176,25 @@
 			<groupId>xml-apis</groupId>
 			<artifactId>xml-apis-ext</artifactId>
 			<version>${xml-apis-ext.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jblas</groupId>
+			<artifactId>jblas</artifactId>
+			<version>1.2.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.ejml</groupId>
+			<artifactId>ejml-all</artifactId>
+			<version>0.39</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.fommil.netlib</groupId>
+			<artifactId>all</artifactId>
+			<version>1.1.2</version>
+			<type>pom</type>
 		</dependency>
 
 		<dependency>
