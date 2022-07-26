@@ -34,6 +34,10 @@
 		<orange-extensions.version>1.3.0</orange-extensions.version>
 		<json.version>20220320</json.version>
 		<xml-apis-ext.version>1.3.04</xml-apis-ext.version>
+		<ojdbc11.version>21.6.0.0.1</ojdbc11.version>
+		<postgresql.version>42.4.0</postgresql.version>
+		<mysql-connector-java.version>8.0.30</mysql-connector-java.version>
+		<mssql-jdbc.version>10.2.1.jre11</mssql-jdbc.version>
 	</properties>
 
 	<repositories>
@@ -185,6 +189,30 @@
 			<groupId>xml-apis</groupId>
 			<artifactId>xml-apis-ext</artifactId>
 			<version>${xml-apis-ext.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.oracle.database.jdbc</groupId>
+			<artifactId>ojdbc11</artifactId>
+			<version>${ojdbc11.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>${postgresql.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>${mysql-connector-java.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<version>${mssql-jdbc.version}</version>
 		</dependency>
 
 	</dependencies>
