@@ -20,7 +20,7 @@
 
 		to check for updates for these below -->
 
-		<openchemlib.version>2022.7.1</openchemlib.version>
+		<openchemlib.version>2022.7.4</openchemlib.version>
 		<fxmolviewer.version>0.0.1-SNAPSHOT</fxmolviewer.version>
 		<substance.version>7.0</substance.version>
 		<opsin.version>2.6.0</opsin.version>
