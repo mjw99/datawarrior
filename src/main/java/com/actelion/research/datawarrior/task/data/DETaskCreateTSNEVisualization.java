@@ -54,7 +54,7 @@ public class DETaskCreateTSNEVisualization extends ConfigurableTask {
 	private static final String PROPERTY_ITERATIONS = "iterations";
 	private static final String PROPERTY_CREATE_VIEW = "createView";
 
-    private DEFrame				mParentFrame,mTargetFrame;
+    private DEFrame				mParentFrame;
 	private CompoundTableModel  mTableModel;
 	private JComboBox			mComboBoxNoOfComponents;
 	private JCheckBox			mCheckBoxCreateViews;
@@ -74,7 +74,7 @@ public class DETaskCreateTSNEVisualization extends ConfigurableTask {
 
 	@Override
 	public DEFrame getNewFrontFrame() {
-		return mTargetFrame;
+		return null;
 		}
 
 	@Override
