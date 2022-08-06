@@ -41,6 +41,7 @@ import java.awt.*;
 
 import static com.actelion.research.table.MarkerLabelConstants.cOnePerCategoryMode;
 import static com.actelion.research.table.view.JVisualization.DEFAULT_LABEL_TRANSPARENCY;
+import static com.actelion.research.table.view.JVisualization.cColumnUnassigned;
 
 public class DERuntimeProperties extends RuntimeProperties {
 	private static final long serialVersionUID = 0x20061101;
@@ -171,8 +172,11 @@ public class DERuntimeProperties extends RuntimeProperties {
 	private static final String cBoxplotMeanMode = "boxplotMeanMode";
 	private static final String cBoxplotShowMeanValues = "boxPlotShowMeanValues";
 	private static final String cCurveMode = "meanLineMode";
+	private static final String cCurveRowList = "curveRowList";
 	private static final String cCurveStdDev = "meanLineStdDev";
 	private static final String cCurveSplitByCategory = "splitCurveByCategory";
+	private static final String cCurveTruncate = "truncateCurve";
+	private static final String cCurveSplitCategoryColumn = "splitCurveCategoryColumn";
 	private static final String cCurveExpression = "curveExpression";
 	private static final String cCurveLineWidth = "curveLineWidth";
 	private static final String cCurveSmoothing = "curveSmoothing";
@@ -997,11 +1001,18 @@ public class DERuntimeProperties extends RuntimeProperties {
 
 				int mode = decodeProperty(cCurveMode+viewName, JVisualization2D.CURVE_MODE_CODE);
 				if (mode != -1) {
+					String listName = getProperty(cCurveRowList+viewName);
+					int rowList = listName == null ? JVisualization2D.cCurveRowListVisible
+							: listName.equals(JVisualization2D.ROW_LIST_CODE_SELECTED) ? JVisualization2D.cCurveRowListSelected
+							: mTableModel.getListHandler().getListIndex(listName);
 					value = getProperty(cCurveStdDev+viewName);
 					boolean stdDev = (value != null && value.equals("true"));
+					value = getProperty(cCurveTruncate+viewName);
+					boolean truncate = (value != null && value.equals("true"));
 					value = getProperty(cCurveSplitByCategory+viewName);
 					boolean split = (value != null && value.equals("true"));
-					((JVisualization2D)visualization).setCurveMode(mode, stdDev, split);
+					int column = mTableModel.findColumn(getProperty(cCurveSplitCategoryColumn+viewName));
+					((JVisualization2D)visualization).setCurveMode(mode, rowList, stdDev, truncate, split, column);
 					value = getProperty(cCurveLineWidth+viewName);
 					float curveLineWidth = (value == null) ? JVisualization2D.DEFAULT_CURVE_LINE_WIDTH : Float.parseFloat(value);
 					((JVisualization2D)visualization).setCurveLineWidth(curveLineWidth);
@@ -1659,14 +1670,23 @@ public class DERuntimeProperties extends RuntimeProperties {
 						int curveMode = ((JVisualization2D)visualization).getCurveMode();
 						if (curveMode != 0) {
 							setProperty(cCurveMode+viewName, JVisualization2D.CURVE_MODE_CODE[curveMode]);
+							int rowList = ((JVisualization2D)visualization).getCurveRowList();
+							if (rowList != JVisualization2D.cCurveRowListVisible)
+								setProperty(cCurveRowList+viewName, rowList == JVisualization2D.cCurveRowListSelected ?
+										JVisualization2D.ROW_LIST_CODE_SELECTED : mTableModel.getListHandler().getListName(rowList));
 							if (((JVisualization2D)visualization).isShowStandardDeviationArea())
 								setProperty(cCurveStdDev+viewName, "true");
-							if (((JVisualization2D)visualization).isCurveSplitByCategory())
+							if (((JVisualization2D)visualization).isCurveSplitByColorCategory())
 								setProperty(cCurveSplitByCategory+viewName, "true");
+							if (((JVisualization2D)visualization).isCurveAreaTruncated())
+								setProperty(cCurveTruncate+viewName, "true");
+							int curveSplitColumn = ((JVisualization2D)visualization).getCurveSplitSecondCategoryColumn();
+							if (curveSplitColumn != cColumnUnassigned)
+								setProperty(cCurveSplitCategoryColumn+viewName, mTableModel.getColumnTitleNoAlias(curveSplitColumn));
 							float curveLineWidth = ((JVisualization2D)visualization).getCurveLineWidth();
 							setProperty(cCurveLineWidth+viewName, ""+curveLineWidth);
-							if (curveMode == JVisualization2D.cCurveModeExpressionShow
-							 || curveMode == JVisualization2D.cCurveModeExpressionHide)
+							if (curveMode == JVisualization2D.cCurveModeByFormulaShow
+							 || curveMode == JVisualization2D.cCurveModeByFormulaHide)
 								setProperty(cCurveExpression+viewName, ((JVisualization2D)visualization).getCurveExpression());
 							if (curveMode == JVisualization2D.cCurveModeSmooth)
 								setProperty(cCurveSmoothing+viewName, ""+((JVisualization2D)visualization).getCurveSmoothing());
