@@ -25,6 +25,7 @@ import com.actelion.research.datawarrior.DataWarrior;
 import com.actelion.research.datawarrior.task.DEMacro;
 import com.actelion.research.datawarrior.task.DEMacroRecorder;
 import com.actelion.research.gui.FileHelper;
+import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.table.CompoundTableLoader;
 import info.clearthought.layout.TableLayout;
 
@@ -37,8 +38,13 @@ public class DETaskOpenFile extends DETaskAbstractOpenFile {
 	public static final String TASK_NAME = "Open File";
 
 	private static final String PROPERTY_ASSUME_CHIRAL = "assumeChiral";
+	private static final String PROPERTY_CSV_DELIMITER = "csvDelimiter";
 
-    private DataWarrior mApplication;
+	private static final String[] DELIMITER_TEXT = { "Comma (default)", "Semicolon", "Vertical line" };
+	private static final int[] DELIMITER_FILETYPE = { FileHelper.cFileTypeTextCommaSeparated, FileHelper.cFileTypeTextSemicolonSeparated, FileHelper.cFileTypeTextVLineSeparated };
+
+	private DataWarrior mApplication;
+	private JComboBox mComboBoxCSVDelimiter;
     private JCheckBox mCheckBoxAssumeChiralTrue;
 
     public DETaskOpenFile(DataWarrior application) {
@@ -59,37 +65,79 @@ public class DETaskOpenFile extends DETaskAbstractOpenFile {
 	@Override
 	public JPanel createInnerDialogContent() {
 		JPanel p = new JPanel();
-		double[][] size = { {TableLayout.PREFERRED}, {TableLayout.PREFERRED, 8} };
+		int gap = HiDPIHelper.scale(8);
+		double[][] size = { {TableLayout.PREFERRED, gap, TableLayout.PREFERRED}, {TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap} };
 		p.setLayout(new TableLayout(size));
 
+		mComboBoxCSVDelimiter = new JComboBox(DELIMITER_TEXT);
+		mComboBoxCSVDelimiter.setEnabled(false);
+		p.add(new JLabel("CSV-File delimiter:", JLabel.RIGHT), "0,0");
+		p.add(mComboBoxCSVDelimiter, "2,0");
+
 		mCheckBoxAssumeChiralTrue = new JCheckBox("For V2000 SD-files assume molecules to be pure enantiomers");
-		p.add(mCheckBoxAssumeChiralTrue, "0,0");
+		mCheckBoxAssumeChiralTrue.setEnabled(false);
+		p.add(mCheckBoxAssumeChiralTrue, "0,2,2,2");
 
 		return p;
 		}
 
 	@Override
+	protected void fileChanged(File file) {
+		enableLocalItems();
+		}
+
+	@Override
+	protected void enableItems() {
+    	super.enableItems();
+		enableLocalItems();
+		}
+
+	private void enableLocalItems() {
+		int fileType = getFilePath() == null ? 0 : FileHelper.getFileType(getFilePath());
+		mComboBoxCSVDelimiter.setEnabled((isChooseFileDuringMacro() || (fileType & FileHelper.cFileTypeTextCommaSeparated) != 0));
+		mCheckBoxAssumeChiralTrue.setEnabled(isChooseFileDuringMacro() || (fileType & FileHelper.cFileTypeSD) != 0);
+		}
+
+	@Override
 	public Properties getDialogConfiguration() {
 		Properties configuration = super.getDialogConfiguration();
-		configuration.setProperty(PROPERTY_ASSUME_CHIRAL, mCheckBoxAssumeChiralTrue.isSelected() ? "true" : "false");
+		if (mComboBoxCSVDelimiter.isEnabled())
+			configuration.setProperty(PROPERTY_CSV_DELIMITER, CompoundTableLoader.DELIMITER_STRING[mComboBoxCSVDelimiter.getSelectedIndex()]);
+		if (mCheckBoxAssumeChiralTrue.isEnabled())
+			configuration.setProperty(PROPERTY_ASSUME_CHIRAL, mCheckBoxAssumeChiralTrue.isSelected() ? "true" : "false");
 		return configuration;
         }
 
 	@Override
 	public void setDialogConfiguration(Properties configuration) {
 		super.setDialogConfiguration(configuration);
+		mComboBoxCSVDelimiter.setSelectedIndex(findListIndex(configuration.getProperty(PROPERTY_CSV_DELIMITER), CompoundTableLoader.DELIMITER_STRING, 0));
 		mCheckBoxAssumeChiralTrue.setSelected("true".equals(configuration.getProperty(PROPERTY_ASSUME_CHIRAL)));
+		enableLocalItems();
 		}
 
 	@Override
 	public void setDialogConfigurationToDefault() {
     	super.setDialogConfigurationToDefault();
+    	mComboBoxCSVDelimiter.setSelectedIndex(0);
 		mCheckBoxAssumeChiralTrue.setSelected(false);
+		enableLocalItems();
+		}
+
+	@Override
+	public boolean qualifiesForRecentFileMenu() {
+		return true;
 		}
 
 	@Override
 	public DEFrame openFile(File file, Properties configuration) {
-		final int filetype = FileHelper.getFileType(file.getName());
+		int type = FileHelper.getFileType(file.getName());
+		if ((type & FileHelper.cFileTypeTextCommaSeparated) != 0) {
+			int delimiter = findListIndex(configuration.getProperty(PROPERTY_CSV_DELIMITER), CompoundTableLoader.DELIMITER_STRING, -1);
+			if (delimiter != -1)
+				type = DELIMITER_FILETYPE[delimiter];
+			}
+		final int filetype = type;
 		final DEFrame emptyFrame = mApplication.getEmptyFrame(file.getName());
 		CompoundTableLoader loader = new CompoundTableLoader(emptyFrame, emptyFrame.getTableModel(), this) {
 			public void finalStatus(boolean success) {
@@ -103,6 +151,10 @@ public class DETaskOpenFile extends DETaskAbstractOpenFile {
 		loader.addDataDependentPropertyReader(CardViewPositionWriter.PROPERTY_NAME, new CardViewPositionReader(emptyFrame));
 		loader.setAssumeChiralFlag("true".equals(configuration.getProperty(PROPERTY_ASSUME_CHIRAL)));
 		loader.readFile(file, new DERuntimeProperties(emptyFrame.getMainFrame()), filetype);
+		if (loader.isAssumeChiralFlag())
+			configuration.setProperty(PROPERTY_ASSUME_CHIRAL, "true");
+		if ((filetype & FileHelper.cFileTypeTextAnyCSV) != 0)
+			configuration.setProperty(PROPERTY_CSV_DELIMITER, CompoundTableLoader.DELIMITER_STRING[loader.getCSVDelimiter()]);
 		return emptyFrame;
 		}
 

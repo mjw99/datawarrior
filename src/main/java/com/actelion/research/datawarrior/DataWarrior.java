@@ -61,6 +61,8 @@ public abstract class DataWarrior implements WindowFocusListener {
 	public static final String MACRO_DIR = "Macro";
 	public static final String PLUGIN_DIR = "Plugin";
 
+	private boolean mIsCapkaAvailable;
+
 	public enum LookAndFeel {
 		GRAPHITE("Graphite", "org.pushingpixels.substance.api.skin.SubstanceGraphiteAquaLookAndFeel", new Color(0x3838C0), new Color(0x252560)),
 		GRAY("Gray", "org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel", new Color(0xAEDBFF), new Color(0x0060FF)),
@@ -231,6 +233,10 @@ public abstract class DataWarrior implements WindowFocusListener {
 		sApplication = this;
 		}
 
+	public boolean isCapkaAvailable() {
+		return mIsCapkaAvailable;
+		}
+
 	public StandardTaskFactory createTaskFactory() {
 		return new StandardTaskFactory(this);
 		}
@@ -249,6 +255,19 @@ public abstract class DataWarrior implements WindowFocusListener {
 		Molecule.setDefaultAverageBondLength(HiDPIHelper.scale(24));
 		StructureNameResolver.setInstance(new DEStructureNameResolver());
 		GenericEditorArea.setReactionMapper(new ChemicalRuleEnhancedReactionMapper());
+
+		try {
+			mIsCapkaAvailable = false;
+			Class.forName("chemaxon.marvin.calculations.pKaPlugin");
+			if (new chemaxon.marvin.calculations.pKaPlugin().isLicensed())
+				mIsCapkaAvailable = true;
+			else
+				JOptionPane.showMessageDialog(getActiveFrame(), "The ChemAxon pKa plugin 'capka.jar' was found, but the license file\nseems to be missing or invalid. pKa calculations won't be available.");
+			}
+		catch (ClassNotFoundException cnfe) {}
+		catch (Throwable t) {
+			t.printStackTrace();
+			}
 		}
 
 	public void checkVersion(boolean showUpToDateMessage) {
@@ -340,7 +359,7 @@ public abstract class DataWarrior implements WindowFocusListener {
 	public void closeApplication(boolean isInteractive) {
 		while (mFrameList.size() != 0) {
 			DEFrame frame = getActiveFrame();
-			if (!disposeFrameSafely(frame, isInteractive))
+			if (disposeFrameSafely(frame, isInteractive) == 0)
 				return;
 			}
 
@@ -357,12 +376,15 @@ public abstract class DataWarrior implements WindowFocusListener {
 	 * we run on a Macintosh, where the frame is cleared but stays open.
 	 * @param frame
 	 * @param isInteractive
+	 * @return 0: could not close; 1: closed without saving; 2: saved and closed
 	 */
-	public void closeFrameSafely(DEFrame frame, boolean isInteractive) {
-		disposeFrameSafely(frame, isInteractive);
+	public int closeFrameSafely(DEFrame frame, boolean isInteractive) {
+		int result = disposeFrameSafely(frame, isInteractive);
 
 		if (!isMacintosh() && mFrameList.size() == 0)
 			System.exit(0);
+
+		return result;
 		}
 
 	/**
@@ -371,10 +393,16 @@ public abstract class DataWarrior implements WindowFocusListener {
 	 * If a file is already assigned to the frame then this file is overwritten.
 	 * Otherwise a new file is saved in the home directory.
 	 * If a macro is recording, then this call does not record any tasks.
+	 * If a macro is recording and the frame to be closed is the macro owner, then
+	 * the recording is stopped before the frame is saved and closed.
 	 * @param frame
 	 * @param saveContent if true, then the window is closed without asking to save
 	 */
 	public void closeFrameSilently(DEFrame frame, boolean saveContent) {
+		if (DEMacroRecorder.getInstance().isRecording()
+		 && DEMacroRecorder.getInstance().getRecordingMacroOwner() == frame)
+			DEMacroRecorder.getInstance().stopRecording();
+
 		if (saveContent)
 			frame.saveSilentlyIfDirty();
 
@@ -393,7 +421,7 @@ public abstract class DataWarrior implements WindowFocusListener {
 	 */
 	public void closeAllFramesSafely(boolean isInteractive) {
 		while (mFrameList.size() != 0)
-			if (!disposeFrameSafely(getActiveFrame(), isInteractive))
+			if (disposeFrameSafely(getActiveFrame(), isInteractive) == 0)
 				return;
 
 		if (!isMacintosh())
@@ -415,19 +443,26 @@ public abstract class DataWarrior implements WindowFocusListener {
 		System.exit(0);
 		}
 
-	private boolean disposeFrameSafely(DEFrame frame, boolean isInteractive) {
+	/**
+	 * @param frame
+	 * @param isInteractive
+	 * @return 0: could not close; 1: closed without saving; 2: saved and closed
+	 */
+	private int disposeFrameSafely(DEFrame frame, boolean isInteractive) {
 		if (isInteractive && (frame == mFrameOnFocus)
 		 && DEMacroRecorder.getInstance().isRunningMacro()) {
 			JOptionPane.showMessageDialog(frame, "You cannot close the front window while a macro is running.");
-			return false;
+			return 0;
 			}
 
 		if (frame.askSaveDataIfDirty()
 		 && frame.askStopRecordingMacro()) {	// stop recording after potentially saving to include save task in macro
+			int result = frame.isDirty() ? 1 : 2;
 			disposeFrame(frame);
-			return true;
+			return result;
 			}
-		return false;
+
+		return 0;
 		}
 
 	/**

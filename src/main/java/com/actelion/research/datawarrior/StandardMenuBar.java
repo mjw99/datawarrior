@@ -357,6 +357,9 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		}
 
 	protected void buildMenu() {
+		for (PluginSpec plugin:mApplication.getPluginRegistry().getPlugins())
+			plugin.setMenuFound(false);
+
 		add(buildFileMenu());
 		add(buildEditMenu());
 		add(buildDataMenu());
@@ -366,6 +369,15 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		add(buildListMenu());
 		add(buildMacroMenu());
 		add(buildHelpMenu());
+
+		// add remaining plugin items that require a new menu
+		for (PluginSpec plugin:mApplication.getPluginRegistry().getPlugins()) {
+			if (!plugin.isMenuFound()) {
+				JMenu menu = new JMenu(plugin.getMenuName());
+				add(menu);
+				addPluginItems(menu);
+				}
+			}
 
 		double[][] size = {{TableLayout.FILL, TableLayout.PREFERRED, TableLayout.FILL},{HiDPIHelper.scale(2), TableLayout.PREFERRED}};
 		JPanel msgPanel = new JPanel();
@@ -1483,7 +1495,7 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 			else if (source == jMenuFileNewFromTransposition)
 				new DETaskNewFileFromTransposition(mParentFrame, mApplication).defineAndRun();
 			else if (actionCommand.startsWith(OPEN_FILE))    // these are the reference,sample,etc-files
-				new DETaskOpenFile(mApplication, actionCommand.substring(OPEN_FILE.length())).defineAndRun();
+				openFile(actionCommand.substring(OPEN_FILE.length()));
 			else if (source == jMenuFileOpen)
 				new DETaskOpenFile(mApplication).defineAndRun();
 			else if (source == jMenuFileOpenTemplate)
@@ -1785,7 +1797,7 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 				new DETaskCopyMacro(mParentFrame, macroName).defineAndRun();
 				}
 			else if (e.getActionCommand().startsWith(RUN_GLOBAL_MACRO)) {
-				new DETaskRunMacroFromFile(mApplication, e.getActionCommand().substring(RUN_GLOBAL_MACRO.length())).defineAndRun();
+				runMacro(e.getActionCommand().substring(RUN_GLOBAL_MACRO.length()));
 				}
 			else if (e.getActionCommand().startsWith(RUN_INTERNAL_MACRO)) {
 				new DETaskRunMacro(mParentFrame, e.getActionCommand().substring(RUN_INTERNAL_MACRO.length())).defineAndRun();
@@ -2094,7 +2106,7 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		if (pluginList == null || pluginList.size() == 0)
 			return;
 
-		boolean isSeparated = false;
+		boolean isSeparated = (parentMenu.getItemCount() == 0);
 
 		for (final PluginSpec plugin:pluginList) {
 			String targetMenuName = plugin.getMenuName() == null ? DEFAULT_PLUGIN_MENU : plugin.getMenuName();
@@ -2106,6 +2118,7 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 				JMenuItem item = new JMenuItem(plugin.getTaskName() + "...");
 				item.addActionListener(e -> new DETaskPluginTask(mParentFrame, plugin.getTask()).defineAndRun());
 				parentMenu.add(item);
+				plugin.setMenuFound(true);
 				}
 			}
 		}
@@ -2267,6 +2280,14 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuMacroStartRecording.setEnabled(!isRecording);
 		jMenuMacroStopRecording.setEnabled(isRecording);
 		jMenuMacroContinueRecording.setEnabled(DEMacroRecorder.getInstance().canContinueRecording(mParentFrame));
+		}
+
+	public void openFile(String filePath) {
+		new DETaskOpenFile(mApplication, filePath).defineAndRun();
+		}
+
+	public void runMacro(String filePath) {
+		new DETaskRunMacroFromFile(mApplication, filePath).defineAndRun();
 		}
 	}
 

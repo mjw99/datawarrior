@@ -911,7 +911,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			case ACCEPTORS:
 				value = 0;
 				for (int atom=0; atom<mol.getAllAtoms(); atom++)
-					if (mol.getAtomicNo(atom) == 7 || mol.getAtomicNo(atom) == 8)
+					if ((mol.getAtomicNo(atom) == 7 || mol.getAtomicNo(atom) == 8) && mol.getAtomCharge(atom) <= 0)
 						value++;
 				break;
 			case DONORS:
@@ -1534,7 +1534,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 
 			// Check, whether the ChemAxon classes are available
 			if ((property.predictorFlags & PREDICTOR_FLAG_PKA) != 0
-			 && !PKaPredictor.isAvailable())
+			 && !mParentFrame.getApplication().isCapkaAvailable())
 				mCheckBox.setEnabled(false);
 			}
 

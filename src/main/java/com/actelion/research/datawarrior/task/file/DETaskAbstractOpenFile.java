@@ -151,6 +151,10 @@ public abstract class DETaskAbstractOpenFile extends ConfigurableTask implements
 		return content;
 		}
 
+	public String getFilePath() {
+		return mFilePathLabel.getPath();
+		}
+
 	/**
 	 * Override this if your subclass needs more dialog options.
 	 * There should not be any border except for an 8 pixel spacing at the bottom.
@@ -231,6 +235,8 @@ public abstract class DETaskAbstractOpenFile extends ConfigurableTask implements
 			return;
 			}
 		if (e.getSource() == mFilePathLabel) {
+			String path = mFilePathLabel.getPath();
+			fileChanged(path == null ? null : new File(path));
 			enableItems();
 			}
 		if (!isInteractive() && e.getSource() == mCheckBoxChooseDuringMacro) {
@@ -239,11 +245,14 @@ public abstract class DETaskAbstractOpenFile extends ConfigurableTask implements
 			}
 		}
 
-	private void enableItems() {
-		boolean chooseDuringMacro = (!isInteractive() && mCheckBoxChooseDuringMacro.isSelected());
-		mButtonEdit.setEnabled(!chooseDuringMacro);
-		mFilePathLabel.setEnabled(!chooseDuringMacro);
-		setOKButtonEnabled(chooseDuringMacro || mFilePathLabel.getPath() != null);
+	protected void enableItems() {
+		mButtonEdit.setEnabled(!isChooseFileDuringMacro());
+		mFilePathLabel.setEnabled(!isChooseFileDuringMacro());
+		setOKButtonEnabled(isChooseFileDuringMacro() || mFilePathLabel.getPath() != null);
+		}
+
+	protected boolean isChooseFileDuringMacro() {
+		return !isInteractive() && mCheckBoxChooseDuringMacro.isSelected();
 		}
 
 	/**
@@ -267,12 +276,7 @@ public abstract class DETaskAbstractOpenFile extends ConfigurableTask implements
 			return askForFileInEDT(selectedFile);
 
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				@Override
-				public void run() {
-					mFile = askForFileInEDT(selectedFile);
-					}
-				});
+			SwingUtilities.invokeAndWait(() -> mFile = askForFileInEDT(selectedFile));
 			}
 		catch (Exception e) {}
 
@@ -299,17 +303,26 @@ public abstract class DETaskAbstractOpenFile extends ConfigurableTask implements
 				return;	// no error message, because user cancelled and knows this
 			}
 		else {
-			file = new File(resolvePathVariables(fileName));
+			file = new File(resolvePathVariables(resolveVariables(fileName)));
 			}
 
-		if (SwingUtilities.isEventDispatchThread())
-			mApplication.updateRecentFiles(file);
-		else {
-			final File _file = file;
-			SwingUtilities.invokeLater(() -> mApplication.updateRecentFiles(_file));
+		if (qualifiesForRecentFileMenu()) {
+			if (SwingUtilities.isEventDispatchThread())
+				mApplication.updateRecentFiles(file);
+			else {
+				final File _file = file;
+				SwingUtilities.invokeLater(() -> mApplication.updateRecentFiles(_file));
+				}
 			}
 
 		mNewFrame = openFile(file, configuration);
+		}
+
+	/**
+	 * Override, if file names shall be added to the 'Recent Files' menu
+ 	 */
+	public boolean qualifiesForRecentFileMenu() {
+		return false;
 		}
 
 	public abstract DEFrame openFile(File file, Properties configuration);
