@@ -25,7 +25,7 @@
 		<substance.version>7.0</substance.version>
 		<opsin.version>2.6.0</opsin.version>
 		<jna-inchi.version>1.1</jna-inchi.version>
-		<openjfx.version>18.0.2</openjfx.version>
+		<openjfx.version>19</openjfx.version>
 		<batik.version>1.14</batik.version>
 		<vecmath.version>1.5.2</vecmath.version>
 		<jep.version>2.4.2</jep.version>
