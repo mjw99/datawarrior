@@ -28,7 +28,7 @@ git clone https://github.com/thsa/datawarrior.git
 
 ### How to build the project
 ```
-git clone https://github.com/mjw99/fxmolviewer/
+git clone https://github.com/thsa/fxmolviewer.git
 cd fxmolviewer
 mvn clean install
 
