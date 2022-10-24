@@ -60,7 +60,7 @@ public class JFXConformerPanel extends JFXPanel {
 				scene = new Scene(sws, width, height, true, SceneAntialiasing.BALANCED);
 			}
 
-			String css = getClass().getResource("/molviewer.css").toExternalForm();
+			String css = getClass().getResource("/resources/molviewer.css").toExternalForm();
 			scene.getStylesheets().add(css);
 			mScene.widthProperty().bind(scene.widthProperty());
 			mScene.heightProperty().bind(scene.heightProperty());
