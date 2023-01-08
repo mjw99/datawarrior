@@ -24,7 +24,7 @@
 		<fxmolviewer.version>0.0.1-SNAPSHOT</fxmolviewer.version>
 		<substance.version>7.0</substance.version>
 		<opsin.version>2.7.0</opsin.version>
-		<jna-inchi.version>1.1</jna-inchi.version>
+		<jna-inchi.version>1.2</jna-inchi.version>
 		<openjfx.version>19</openjfx.version>
 		<batik.version>1.14</batik.version>
 		<vecmath.version>1.5.2</vecmath.version>
