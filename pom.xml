@@ -26,7 +26,7 @@
 		<opsin.version>2.7.0</opsin.version>
 		<jna-inchi.version>1.2</jna-inchi.version>
 		<openjfx.version>19</openjfx.version>
-		<batik.version>1.14</batik.version>
+		<batik.version>1.16</batik.version>
 		<vecmath.version>1.5.2</vecmath.version>
 		<jep.version>2.4.2</jep.version>
 		<commons-math.version>2.2</commons-math.version>
