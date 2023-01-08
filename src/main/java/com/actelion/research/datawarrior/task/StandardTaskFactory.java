@@ -180,7 +180,8 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskJumpToReferenceRow.TASK_NAME) ? new DETaskJumpToReferenceRow(frame, mainPane)
 			 : codeMatches(taskCode, DETaskMapReactions.TASK_NAME) ? new DETaskMapReactions(frame)
 			 : codeMatches(taskCode, DETaskMergeColumns.TASK_NAME) ? new DETaskMergeColumns(frame)
-			 : codeMatches(taskCode, DETaskMergeFile.TASK_NAME) ? new DETaskMergeFile(frame, false)
+			 : codeMatches(taskCode, DETaskMergeFile.TASK_NAME_FILE) ? new DETaskMergeFile(frame, false)
+			 : codeMatches(taskCode, DETaskMergeFile.TASK_NAME_CLIPBOARD) ? new DETaskMergeFile(frame, true)
 			 : codeMatches(taskCode, DETaskNew2DView.TASK_NAME) ? new DETaskNew2DView(frame, mainPane,null)
 			 : codeMatches(taskCode, DETaskNew3DView.TASK_NAME) ? new DETaskNew3DView(frame, mainPane,null)
 			 : codeMatches(taskCode, DETaskNewCardsView.TASK_NAME) ? new DETaskNewCardsView(frame, mainPane,null)
@@ -239,6 +240,7 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskSetColumnProperties.TASK_NAME) ? new DETaskSetColumnProperties(frame)
 			 : codeMatches(taskCode, DETaskSetColumnReference.TASK_NAME) ? new DETaskSetColumnReference(frame, frame.getTableModel(), -1)
 			 : codeMatches(taskCode, DETaskSetConnectionLines.TASK_NAME) ? new DETaskSetConnectionLines(frame, mainPane, null)
+			 : codeMatches(taskCode, DETaskSetCrossHairs.TASK_NAME) ? new DETaskSetCrossHairs(frame, mainPane, null)
 			 : codeMatches(taskCode, DETaskSetExplanationHTML.TASK_NAME) ? new DETaskSetExplanationHTML(frame, frame.getTableModel())
 			 : codeMatches(taskCode, DETaskSetFocus.TASK_NAME) ? new DETaskSetFocus(frame, mainPane, null)
 			 : codeMatches(taskCode, DETaskSetFontSize.TASK_NAME) ? new DETaskSetFontSize(frame, mainPane, null)
@@ -398,7 +400,8 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_EDIT, DETaskInvertSelection.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskJumpToReferenceRow.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskMergeColumns.TASK_NAME));
-			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskMergeFile.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskMergeFile.TASK_NAME_FILE));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_EDIT, DETaskMergeFile.TASK_NAME_CLIPBOARD));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskNew2DView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskNew3DView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskNewCardsView.TASK_NAME));
@@ -457,6 +460,7 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskSetColumnProperties.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskSetColumnReference.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetConnectionLines.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetCrossHairs.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSetExplanationHTML.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetFocus.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskSetFontSize.TASK_NAME));

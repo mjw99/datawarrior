@@ -557,7 +557,8 @@ public class CompoundTableModel extends AbstractTableModel
 	/**
 	 * Creates a StereoMolecule from this record's content at the specified column. If a molecule is passed,
 	 * then this is used as a container; otherwise a new StereoMolecule is created.
-	 * If record does not contain a molecule, then null is returned even if mol is not null.
+	 * If record does not contain a molecule, then null is returned even if mol is not null, unless
+	 * the column is defined to contain fragments, in which case an empty fragment is returned.
 	 * The atomColorMode defines whether and to which extend atoms are in color. For displaying mol on the
 	 * screen use ATOM_COLOR_MODE_ALL, for printing use ATOM_COLOR_MODE_EXPLICIT and for copy/paste,
 	 * drag&drop, cheminformatics purposes, etc use ATOM_COLOR_MODE_NONE.
@@ -576,43 +577,49 @@ public class CompoundTableModel extends AbstractTableModel
 		if (isColumnTypeStructure(column)) {
 			byte[] idcode = (byte[])record.getData(column);
 			if (idcode != null) {
-				int index1 = 0;
-				while (index1<idcode.length && idcode[index1] != '\n')
-					index1++;
-				if (index1 != idcode.length) {
+				try {
+					int index1 = 0;
+					while (index1<idcode.length && idcode[index1] != '\n')
+						index1++;
+					if (index1 != idcode.length) {
+						if (mol == null)
+							mol = new StereoMolecule();
+						new IDCodeParser(true).parse(mol, idcode);
+						do {
+							int index2 = index1+1;
+							while (index2<idcode.length && idcode[index2] != '\n')
+								index2++;
+							byte[] subIDCode = new byte[index2-index1-1];
+							System.arraycopy(idcode, index1+1, subIDCode, 0, index2-index1-1);
+							mol.addMolecule(new IDCodeParser(true).getCompactMolecule(subIDCode));
+							index1 = index2;
+							} while (index1 != idcode.length);
+						new CoordinateInventor().invent(mol);
+						return mol;
+						}
+
+					int coordsColumn = getChildColumn(column, cColumnType2DCoordinates);
+					byte[] coords = (byte[])record.getData(coordsColumn);
 					if (mol == null)
-						mol = new StereoMolecule();
-					new IDCodeParser(true).parse(mol, idcode);
-					do {
-						int index2 = index1+1;
-						while (index2<idcode.length && idcode[index2] != '\n')
-							index2++;
-						byte[] subIDCode = new byte[index2-index1-1];
-						System.arraycopy(idcode, index1+1, subIDCode, 0, index2-index1-1);
-						mol.addMolecule(new IDCodeParser(true).getCompactMolecule(subIDCode));
-						index1 = index2;
-						} while (index1 != idcode.length);
-					new CoordinateInventor().invent(mol);
+						mol = new IDCodeParser(true).getCompactMolecule(idcode, coords);
+					else
+						new IDCodeParser(true).parse(mol, idcode, coords);
+					String identifierColumnName = getColumnProperty(column, cColumnPropertyRelatedIdentifierColumn);
+					if (identifierColumnName != null && mol != null) {
+						int identifierColumn = findColumn(identifierColumnName);
+						if (identifierColumn != -1) {
+							byte[] data = (byte[])record.getData(identifierColumn);
+							if (data != null && data.length != 0)
+								mol.setName(new String(data));
+							}
+						}
+				    colorizeStructureAtoms(record, column, atomColorMode, mol);
 					return mol;
 					}
-
-				int coordsColumn = getChildColumn(column, cColumnType2DCoordinates);
-				byte[] coords = (byte[])record.getData(coordsColumn);
-				if (mol == null)
-					mol = new IDCodeParser(true).getCompactMolecule(idcode, coords);
-				else
-					new IDCodeParser(true).parse(mol, idcode, coords);
-				String identifierColumnName = getColumnProperty(column, cColumnPropertyRelatedIdentifierColumn);
-				if (identifierColumnName != null && mol != null) {
-					int identifierColumn = findColumn(identifierColumnName);
-					if (identifierColumn != -1) {
-						byte[] data = (byte[])record.getData(identifierColumn);
-						if (data != null && data.length != 0)
-							mol.setName(new String(data));
-						}
+				catch (Exception e) {
+					byte[] coords = (byte[])record.getData(getChildColumn(column, cColumnType2DCoordinates));
+					System.out.println("ERROR: Couldn't create structure. IDCode:"+new String(idcode)+" Coords:"+(coords==null?"null":new String(coords)));
 					}
-			   	colorizeStructureAtoms(record, column, atomColorMode, mol);
-				return mol;
 				}
 			else if ("true".equals(mColumnInfo[column].getProperty(cColumnPropertyIsFragment))) {
 				if (mol == null)
@@ -627,17 +634,23 @@ public class CompoundTableModel extends AbstractTableModel
 			int idcodeColumn = getParentColumn(column);
 			byte[] idcode = (byte[])record.getData(idcodeColumn);
 			if (idcode != null) {
-				byte[] coords = (byte[])record.getData(column);
-				if (mol == null)
-					mol = new IDCodeParser(false).getCompactMolecule(idcode, coords);
-				else
-					new IDCodeParser(false).parse(mol, idcode, coords);
-				if (mol != null) {
-					String identifier = getIdentifier(record, idcodeColumn);
-					if (identifier != null)
-						mol.setName(identifier);
+				try {
+					byte[] coords = (byte[])record.getData(column);
+					if (mol == null)
+						mol = new IDCodeParser(false).getCompactMolecule(idcode, coords);
+					else
+						new IDCodeParser(false).parse(mol, idcode, coords);
+					if (mol != null) {
+						String identifier = getIdentifier(record, idcodeColumn);
+						if (identifier != null)
+							mol.setName(identifier);
+						}
+					return mol;
 					}
-				return mol;
+				catch (Exception e) {
+					byte[] coords = (byte[])record.getData(column);
+					System.out.println("ERROR: Couldn't create structure. IDCode:"+new String(idcode)+" Coords:"+(coords==null?"null":new String(coords)));
+					}
 				}
 			}
 
@@ -1357,61 +1370,50 @@ public class CompoundTableModel extends AbstractTableModel
 	 * include all values. The range is specified as non-logarithmic values,
 	 * even if the column is set to logarithmic mode. In logarithmic mode
 	 * the specified minValue must be larger than 0.0.
-	 * @param column
-	 * @param minValue null or as float interpretable string value
-	 * @param maxValue null or as float interpretable string value
+	 * @param column numerical column except for date columns
+	 * @param min null or valid CompoundTableRangeBorder
+	 * @param max null or valid CompoundTableRangeBorder
 	 */
-	public void setValueRange(int column, String minValue, String maxValue) {
+	public void setValueRange(int column, CompoundTableRangeBorder min, CompoundTableRangeBorder max) {
 		if ((mColumnInfo[column].type & cColumnTypeDouble) == 0)
-			return; // cannot set range for non-float columns (beware of date columns)
+			return; // cannot set range for non-float columns
 		if (getColumnProperty(column, cColumnPropertyCyclicDataMax) != null)
 			return; // cannot set range for cyclic data
 
-		float min = Float.NaN;
-		float max = Float.NaN;
-	    try {
-	    	if (minValue != null)
-	    		min = Float.parseFloat(minValue);
-	    	if (maxValue != null)
-	    		max = Float.parseFloat(maxValue);
-	    	}
-	    catch (NumberFormatException nfe) {
-	    	return;
-	    	}
-
-		if (!Float.isNaN(min) && mColumnInfo[column].logarithmicViewMode && min <= 0)
-			return;
-
 		boolean changed = false;
 		String oldMinValue = getColumnProperty(column, cColumnPropertyDataMin);
-		if (minValue == null) {
+		if (min == null) {
 			if (oldMinValue != null) {
 				setColumnProperty(column, cColumnPropertyDataMin, null);
 				changed = true;
 				}
 			}
 		else {
-			if (oldMinValue == null || Float.parseFloat(oldMinValue) != min) {
-				setColumnProperty(column, cColumnPropertyDataMin, minValue);
+			if (oldMinValue == null || !oldMinValue.equals(min.getText())) {
+				setColumnProperty(column, cColumnPropertyDataMin, min.getText());
 				changed = true;
 				}
 			}
 		String oldMaxValue = getColumnProperty(column, cColumnPropertyDataMax);
-		if (maxValue == null) {
+		if (max == null) {
 			if (oldMaxValue != null) {
 				setColumnProperty(column, cColumnPropertyDataMax, null);
 				changed = true;
 				}
 			}
 		else {
-			if (oldMaxValue == null || Float.parseFloat(oldMaxValue) != max) {
-				setColumnProperty(column, cColumnPropertyDataMax, maxValue);
+			if (oldMaxValue == null || !oldMaxValue.equals(max.getText())) {
+				setColumnProperty(column, cColumnPropertyDataMax, max.getText());
 				changed = true;
 				}
 			}
 
 		if (changed) {
-			updateMinAndMaxFromDouble(column);
+			if (isColumnTypeDate(column))
+				updateMinAndMaxFromDate(column);
+			else
+				updateMinAndMaxFromDouble(column);
+
 			fireEventsNow(new CompoundTableEvent(this, CompoundTableEvent.cChangeColumnData, column), null);
 			}
 		}
@@ -3343,9 +3345,9 @@ public class CompoundTableModel extends AbstractTableModel
 											reactantSearcher.setMolecule(reactant, reactantFFP);
 											inReactantCount = reactantSearcher.findFragmentInMoleculeWithoutIndex(SSSearcher.cCountModeOverlapping);
 											if (inReactantCount != 0 && isMapped) {
-												inProductCount -= countEquivalentMatches(product, productSearcher.getMatchList());
+												inProductCount -= countEquivalentMatches(product, productSearcher.getGraphMatcher().getMatchList());
 												if (inProductCount <= inReactantCount)
-													inReactantCount -= countEquivalentMatches(reactant, reactantSearcher.getMatchList());
+													inReactantCount -= countEquivalentMatches(reactant, reactantSearcher.getGraphMatcher().getMatchList());
 												}
 											}
 										// TODO check, whether we also have to take into account in catalyst occurences
@@ -5295,25 +5297,16 @@ public class CompoundTableModel extends AbstractTableModel
 				mColumnInfo[column].maxValue = max;
 			}
 		else {
-			if (getColumnProperty(column, cColumnPropertyDataMin) != null) {
-				float min = Float.parseFloat(getColumnProperty(column, cColumnPropertyDataMin));
-				if (!mColumnInfo[column].logarithmicViewMode || min > 0.0f) {
-					if (mColumnInfo[column].logarithmicViewMode)
-						min = (float)Math.log10(min);
-					if (mColumnInfo[column].minValue > min)
-						mColumnInfo[column].minValue = min;
-					}
-				}
-				
-			if (getColumnProperty(column, cColumnPropertyDataMax) != null) {
-				float max = Float.parseFloat(getColumnProperty(column, cColumnPropertyDataMax));
-				if (!mColumnInfo[column].logarithmicViewMode || max > 0.0f) {
-					if (mColumnInfo[column].logarithmicViewMode)
-						max = (float)Math.log10(max);
-					if (mColumnInfo[column].maxValue < max)
-						mColumnInfo[column].maxValue = max;
-					}
-				}
+			float range = mColumnInfo[column].dataMax - mColumnInfo[column].dataMin;
+			String min = getColumnProperty(column, cColumnPropertyDataMin);
+			if (min != null)
+				mColumnInfo[column].minValue = new CompoundTableRangeBorder(min).getBorderDoubleValue(
+						mColumnInfo[column].dataMin, range, true, mColumnInfo[column].logarithmicViewMode);
+
+			String max = getColumnProperty(column, cColumnPropertyDataMax);
+			if (max != null)
+				mColumnInfo[column].maxValue = new CompoundTableRangeBorder(max).getBorderDoubleValue(
+						mColumnInfo[column].dataMax, range, false, mColumnInfo[column].logarithmicViewMode);
 			}
 		}
 
@@ -5324,6 +5317,16 @@ public class CompoundTableModel extends AbstractTableModel
 	private void updateMinAndMaxFromDate(int column) {
 		mColumnInfo[column].minValue = mColumnInfo[column].dataMin - 0.5f;
 		mColumnInfo[column].maxValue = mColumnInfo[column].dataMax + 0.5f;
+		float range = mColumnInfo[column].maxValue - mColumnInfo[column].minValue;
+		String min = getColumnProperty(column, cColumnPropertyDataMin);
+		if (min != null)
+			mColumnInfo[column].minValue = new CompoundTableRangeBorder(min).getBorderDateValue(
+					mColumnInfo[column].minValue, range, true);
+
+		String max = getColumnProperty(column, cColumnPropertyDataMax);
+		if (max != null)
+			mColumnInfo[column].maxValue = new CompoundTableRangeBorder(max).getBorderDateValue(
+					mColumnInfo[column].maxValue, range, false);
 		}
 
 	private void validateColumnNames(String[] columnName) {

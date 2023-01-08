@@ -28,9 +28,12 @@ import com.actelion.research.datawarrior.task.chem.DETaskSortReactionsBySimilari
 import com.actelion.research.datawarrior.task.chem.DETaskSortStructuresBySimilarity;
 import com.actelion.research.datawarrior.task.table.DETaskCopyTableCells;
 import com.actelion.research.datawarrior.task.table.DETaskPasteIntoTable;
+import com.actelion.research.datawarrior.task.view.DETaskSetCrossHairs;
 import com.actelion.research.datawarrior.task.view.cards.*;
 import com.actelion.research.gui.JScrollableMenu;
 import com.actelion.research.gui.clipboard.ClipboardHandler;
+import com.actelion.research.gui.clipboard.ImageClipboardHandler;
+import com.actelion.research.gui.generic.GenericRectangle;
 import com.actelion.research.table.filter.JMultiStructureFilterPanel;
 import com.actelion.research.table.model.CompoundRecord;
 import com.actelion.research.table.model.CompoundTableListHandler;
@@ -44,8 +47,13 @@ import com.actelion.research.table.view.card.positioning.SpiralOutPositioner;
 import com.actelion.research.table.view.card.positioning.XYSorter;
 import com.actelion.research.util.BrowserControl;
 import com.actelion.research.util.Platform;
+import org.apache.batik.dom.GenericDOMImplementation;
+import org.apache.batik.svggen.SVGGeneratorContext;
+import org.apache.batik.svggen.SVGGraphics2D;
 import org.openmolecules.chem.conf.gen.ConformerGenerator;
 import org.openmolecules.chem.conf.so.ConformationSelfOrganizer;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
 
 import javax.swing.*;
 import java.awt.*;
@@ -53,8 +61,8 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.*;
@@ -77,6 +85,8 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 
 	private static final String DELIMITER = "@#|";
 	private static final String COPY_STRUCTURE = "structure" + DELIMITER;
+	private static final String COPY_PNG = "png" + DELIMITER;
+	private static final String COPY_SVG = "svg" + DELIMITER;
 	private static final String COPY_STRUCTURE_DECORATED = "decorated" + DELIMITER;	// e.g. with pKa coloring & labels
 	private static final String COPY_REACTION = "reaction" + DELIMITER;
 	private static final String COPY_IDCODE = "idcode" + DELIMITER;
@@ -97,7 +107,7 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 	protected static final String EDIT_VALUE = "edit" + DELIMITER;
 	private static final String SORT = "sort" + DELIMITER;
 	private static final String FREEZE_CROSSHAIR = "freeze";
-	private static final String UNFREEZE_CROSSHAIRS = "unfreeze";
+	private static final String CLEAR_CROSSHAIRS = "unfreeze";
 	private static final String ADD_TO_LIST = "add" + DELIMITER;
 	private static final String REMOVE_FROM_LIST = "remove" + DELIMITER;
 	private static final String PATENT_SEARCH = "patentSearch" + DELIMITER;
@@ -178,7 +188,7 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 		if (record == null) {
 			if (mSource instanceof VisualizationPanel2D && ((VisualizationPanel)mSource).getVisualization().showCrossHair()) {
 				addMenuItem("Freeze Crosshair", FREEZE_CROSSHAIR);
-				addMenuItem("Remove Frozen Crosshairs", UNFREEZE_CROSSHAIRS);
+				addMenuItem("Remove Frozen Crosshairs", CLEAR_CROSSHAIRS);
 				}
 			}
 		else {
@@ -325,7 +335,7 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 			if (mSource instanceof VisualizationPanel2D && ((VisualizationPanel)mSource).getVisualization().showCrossHair()) {
 				JMenu crosshairMenu = new JMenu("Crosshair");
 				addSubmenuItem(crosshairMenu, "Freeze Crosshair", FREEZE_CROSSHAIR, null);
-				addSubmenuItem(crosshairMenu, "Remove Frozen Crosshairs", UNFREEZE_CROSSHAIRS, null);
+				addSubmenuItem(crosshairMenu, "Remove Frozen Crosshairs", CLEAR_CROSSHAIRS, null);
 				addSeparator();
 				add(crosshairMenu);
 				}
@@ -559,6 +569,10 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 			if (CompoundTableModel.cColumnType3DCoordinates.equals(mTableModel.getColumnSpecialType(column))
 					&& mTableModel.getParentColumn(column) == idcodeColumn)
 				addSubmenuItem(copyMenu, mTableModel.getColumnTitle(column), COPY_STRUCTURE+mTableModel.getColumnTitle(column));
+		copyMenu.addSeparator();
+		addSubmenuItem(copyMenu, "PGN-Image", COPY_PNG+structureColumnSpecifier);
+		addSubmenuItem(copyMenu, "SVG-Image", COPY_SVG+structureColumnSpecifier);
+		copyMenu.addSeparator();
 		addSubmenuItem(copyMenu, "ID-Code", COPY_IDCODE+structureColumnSpecifier);
 		addSubmenuItem(copyMenu, "SMILES-String", COPY_SMILES+structureColumnSpecifier);
 		addSubmenuItem(copyMenu, "Standard Inchi", COPY_INCHI+structureColumnSpecifier);
@@ -951,6 +965,11 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 				StringSelection theData = new StringSelection(rxnsmi);
 				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(theData, theData);
 			}
+		} else if (actionCommand.startsWith(COPY_PNG)
+				|| actionCommand.startsWith(COPY_SVG)) {
+			StereoMolecule mol = getMolecule(actionCommand);
+			if (mol != null)
+				copyStructureImage(mol, actionCommand.startsWith(COPY_SVG));
 		} else if (actionCommand.startsWith(COPY_SMILES)
 				|| actionCommand.startsWith(COPY_INCHI)
 				|| actionCommand.startsWith(COPY_INCHI_KEY)
@@ -1041,9 +1060,9 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 			else
 				new DETaskSortStructuresBySimilarity(getParentFrame(), descriptorColumn, mRecord).defineAndRun();
 		} else if (actionCommand.equals(FREEZE_CROSSHAIR)) {
-			((JVisualization2D)((VisualizationPanel)mSource).getVisualization()).freezeCrossHair();
-		} else if (actionCommand.equals(UNFREEZE_CROSSHAIRS)) {
-			((JVisualization2D)((VisualizationPanel)mSource).getVisualization()).unfreezeCrossHairs();
+			new DETaskSetCrossHairs(getParentFrame(), mMainPane, (VisualizationPanel2D)mSource, DETaskSetCrossHairs.MODE_FREEZE_CURRENT).defineAndRun();
+		} else if (actionCommand.equals(CLEAR_CROSSHAIRS)) {
+			new DETaskSetCrossHairs(getParentFrame(), mMainPane, (VisualizationPanel2D)mSource, DETaskSetCrossHairs.MODE_CLEAR).defineAndRun();
 		} else if (actionCommand.startsWith(ADD_TO_LIST)) {
 			String hitlistName = getCommandColumn(actionCommand);
 			CompoundTableListHandler hh = mTableModel.getListHandler();
@@ -1431,6 +1450,73 @@ public class DERowDetailPopupMenu extends JPopupMenu implements ActionListener {
 		while (c != null && !(c instanceof DEFrame))
 			c = c.getParent();
 		return (DEFrame)c;
+		}
+
+	private void copyStructureImage(StereoMolecule mol, boolean isSVG) {
+		if (isSVG) {
+			final GenericRectangle BOUNDS = new GenericRectangle(0, 0, 1024, 768);
+			final int MAX_AVBL = 128;
+
+/*			DOMImplementation impl = GenericDOMImplementation.getDOMImplementation();
+			Document myFactory = impl.createDocument("http://www.w3.org/2000/svg", "svg", null);
+
+			SVGGeneratorContext ctx = SVGGeneratorContext.createDefault(myFactory);
+			ctx.setEmbeddedFontsOn(true);
+			ctx.setComment("Image generated by DataWarrior with Batik SVG Generator");
+			SVGGraphics2D g2d = new SVGGraphics2D(ctx, false);
+			g2d.setSVGCanvasSize(new Dimension((int)BOUNDS.width, (int)BOUNDS.height));
+			Depictor2D depictor = new Depictor2D(mol);
+			depictor.validateView(g2d, BOUNDS, AbstractDepictor.cModeInflateToMaxAVBL + MAX_AVBL);
+
+			depictor.paint(g2d);
+			try {
+				StringWriter writer = new StringWriter();
+				g2d.stream(writer, true);
+				StringSelection theData = new StringSelection(writer.toString());
+				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(theData, theData);
+				}
+			catch (Exception e) {
+				e.printStackTrace();
+				}
+*/
+
+			SVGDepictor depictor = new SVGDepictor(mol, null);
+			depictor.setLegacyMode(false);
+			depictor.validateView(null, BOUNDS, AbstractDepictor.cModeInflateToMaxAVBL + MAX_AVBL);
+			depictor.paint(null);
+			StringSelection theData = new StringSelection(depictor.toString());
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(theData, theData);
+			}
+		else {
+			final GenericRectangle BOUNDS = new GenericRectangle(0, 0, 2048, 1536);
+			final int MAX_AVBL = 256;
+			BufferedImage image = new BufferedImage((int)BOUNDS.width, (int)BOUNDS.height, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D graphics = (Graphics2D)image.getGraphics();
+			Depictor2D depictor = new Depictor2D(mol);
+			depictor.validateView(graphics, BOUNDS, AbstractDepictor.cModeInflateToMaxAVBL + MAX_AVBL);
+			depictor.paint(graphics);
+			ImageClipboardHandler.copyImage(image);
+			}
+		}
+
+	private SVGGraphics2D prepareSVG(int width, int height) {
+		// example from: http://xmlgraphics.apache.org/batik/using/svg-generator.html
+
+		// Get a DOMImplementation.
+		DOMImplementation impl = GenericDOMImplementation.getDOMImplementation();
+
+		// Create an instance of org.w3c.dom.Document.
+		String svgNS = "http://www.w3.org/2000/svg";
+		Document myFactory = impl.createDocument(svgNS, "svg", null);
+
+		SVGGeneratorContext ctx = SVGGeneratorContext.createDefault(myFactory);
+		ctx.setEmbeddedFontsOn(true);
+		ctx.setComment("Image generated by DataWarrior with Batik SVG Generator");
+		SVGGraphics2D g2d = new SVGGraphics2D(ctx, false);
+
+		g2d.setSVGCanvasSize(new Dimension(width,height));
+
+		return g2d;
 		}
 
 	private void test(int column) {

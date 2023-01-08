@@ -18,21 +18,17 @@
 
 package com.actelion.research.datawarrior.task.data;
 
+import com.actelion.research.datawarrior.DEFrame;
+import com.actelion.research.datawarrior.task.ConfigurableTask;
+import com.actelion.research.gui.hidpi.HiDPIHelper;
+import com.actelion.research.table.model.CompoundTableModel;
+import com.actelion.research.table.model.CompoundTableRangeBorder;
 import info.clearthought.layout.TableLayout;
 
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Properties;
-
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-
-import com.actelion.research.datawarrior.DEFrame;
-import com.actelion.research.datawarrior.task.ConfigurableTask;
-import com.actelion.research.table.model.CompoundTableModel;
 
 
 public class DETaskSetValueRange extends ConfigurableTask implements ActionListener {
@@ -84,17 +80,23 @@ public class DETaskSetValueRange extends ConfigurableTask implements ActionListe
 	@Override
 	public JComponent createDialogContent() {
 		JPanel mp = new JPanel();
-		double[][] size = { {8, TableLayout.PREFERRED, 8, TableLayout.PREFERRED, 8, TableLayout.FILL, 8},
-							{8, TableLayout.PREFERRED, 16, TableLayout.PREFERRED, 4, TableLayout.PREFERRED, 8} };
+		int gap = HiDPIHelper.scale(8);
+		double[][] size = { {gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap, TableLayout.FILL, gap},
+							{gap, TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED,
+							 gap, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED, gap} };
 		mp.setLayout(new TableLayout(size));
 
 		mp.add(new JLabel("Data column:"), "1,1");
 		mp.add(new JLabel("Minimum value:"), "1,3");
 		mp.add(new JLabel("Maximum value:"), "1,5");
+		mp.add(new JLabel("Define data range with absolute values"), "1,7,5,7");
+		mp.add(new JLabel("or extend by percentage (trailing '%')"), "1,9,5,9");
+		mp.add(new JLabel("or extend by width value (trailing '#')"), "1,11,5,11");
+		mp.add(new JLabel("(Dates: \"ddmmyyyy\"; \"50#\": 50 days)"), "1,13,5,13");
 
 		mComboBoxColumn = new JComboBox();
 		for (int column=0; column<mTableModel.getTotalColumnCount(); column++)
-			if (mTableModel.isColumnTypeDouble(column) && !mTableModel.isColumnTypeDate(column))
+			if (mTableModel.isColumnTypeDouble(column))
 				mComboBoxColumn.addItem(mTableModel.getColumnTitle(column));
 		if (mDefaultColumn == -1) {
 			mComboBoxColumn.setEditable(true);
@@ -155,8 +157,9 @@ public class DETaskSetValueRange extends ConfigurableTask implements ActionListe
 
 	@Override
 	public boolean isConfigurationValid(Properties configuration, boolean isLive) {
+    	int column = -1;
 		if (isLive) {
-			int column = mTableModel.findColumn(configuration.getProperty(PROPERTY_COLUMN, ""));
+			column = mTableModel.findColumn(configuration.getProperty(PROPERTY_COLUMN, ""));
 			if (column == -1) {
 				showErrorMessage("Column '"+configuration.getProperty(PROPERTY_COLUMN)+"' not found.");
 		        return false;
@@ -165,39 +168,43 @@ public class DETaskSetValueRange extends ConfigurableTask implements ActionListe
 
 	    String minString = configuration.getProperty(PROPERTY_MINIMUM);
 	    String maxString = configuration.getProperty(PROPERTY_MAXIMUM);
-	    float min = Float.NaN;
-	    float max = Float.NaN;
-	    if (minString != null) {
-		    try {
-		        min = Float.parseFloat(minString);
-		    	}
-		    catch (NumberFormatException nfe) {
+
+	    CompoundTableRangeBorder min = minString == null ? null : new CompoundTableRangeBorder(minString);
+		CompoundTableRangeBorder max = maxString == null ? null : new CompoundTableRangeBorder(maxString);
+
+	    if (isLive && mTableModel.isColumnTypeDate(column)) {
+	    	if (minString != null && !min.isValid(true)) {
+			    showErrorMessage("Invalid minimum date.");
+			    return false;
+			    }
+		    if (maxString != null && !max.isValid(true)) {
+			    showErrorMessage("Invalid maximum date.");
+			    return false;
+			    }
+	        }
+	    else {
+		    if (minString != null && !min.isValid(false)) {
 				showErrorMessage("Invalid minimum value.");
 		        return false;
-		    	}
-	    	}
-	    if (maxString != null) {
-		    try {
-		        max = Float.parseFloat(maxString);
-		    	}
-		    catch (NumberFormatException nfe) {
+		        }
+		    if (maxString != null && !max.isValid(false)) {
 				showErrorMessage("Invalid maximum value.");
 		        return false;
-		    	}
-	    	}
-	    if (minString != null && maxString != null && (min >= max)) {
-			showErrorMessage("Minimum value is not smaller than maximum.");
-	        return false;
-	    	}
+		        }
+		    }
+
 		return true;
 		}
+
 
 	@Override
 	public void runTask(Properties configuration) {
 		int column = mTableModel.findColumn(configuration.getProperty(PROPERTY_COLUMN, ""));
 	    String minString = configuration.getProperty(PROPERTY_MINIMUM);
 	    String maxString = configuration.getProperty(PROPERTY_MAXIMUM);
-		mTableModel.setValueRange(column, minString, maxString);
+		CompoundTableRangeBorder min = minString == null ? null : new CompoundTableRangeBorder(minString);
+		CompoundTableRangeBorder max = maxString == null ? null : new CompoundTableRangeBorder(maxString);
+	    mTableModel.setValueRange(column, min, max);
 		}
 
 	@Override

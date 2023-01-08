@@ -131,6 +131,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 	private static final String cSuppressLegend = "suppressLegend";
 	private static final String cSuppressScale = "suppressScale";
 	private static final String cCrossHairMode = "crosshairMode";
+	private static final String cCrossHairList = "crosshairList";
 	private static final String cDynamicScale = "dynamicScale";
 	private static final String cScaleStyle = "scaleStyle";
 	private static final String cDrawMarkerOutline = "drawMarkerOutline";
@@ -234,17 +235,22 @@ public class DERuntimeProperties extends RuntimeProperties {
 		mPruningPanel = parentPane.getPruningPanel();
 		}
 
+	@Override
 	public void apply() {
+		apply(true);
+		}
+
+	public void apply(boolean clearAllFirst) {
 		if (size() == 0)
 			return;
 
 		if (SwingUtilities.isEventDispatchThread()) {
-			doApply();
+			applyEDT(clearAllFirst);
 			}
 		else {
 				// if we are not in the event dispatcher thread we need to use invokeAndWait
 			try {
-				SwingUtilities.invokeAndWait(() -> doApply());
+				SwingUtilities.invokeAndWait(() -> applyEDT(clearAllFirst));
 				}
 			catch (Exception e) {
 				e.printStackTrace();
@@ -252,12 +258,14 @@ public class DERuntimeProperties extends RuntimeProperties {
 			}
 		}
 
-	protected void doApply() {
+	private void applyEDT(boolean clearAllFirst) {
 		if (size() == 0)
 			return;
 
-		mMainPane.removeAllViews();
-		mPruningPanel.removeAllFilters();
+		if (clearAllFirst) {
+			mMainPane.removeAllViews();
+			mPruningPanel.removeAllFilters();
+			}
 
 		super.apply();
 
@@ -280,19 +288,19 @@ public class DERuntimeProperties extends RuntimeProperties {
 			}
 
 		String viewCountString = getProperty(cMainViewCount);
-		if (viewCountString == null) {	// old file with standard views only
-			applyViewProperties(mMainPane.addTableView("Table", "root"), "Table");
-			applyViewProperties(mMainPane.add2DView("2D View", "Table\tcenter"), "2D");
-			applyViewProperties(mMainPane.add3DView("3D View", "Table\tcenter"), "3D");
+		if (viewCountString == null && clearAllFirst) {	// either old file with standard views only, or applying just additional properties (clearAllFirst==false)
+			applyViewProperties(mMainPane.addTableView("Table", "root"), "Table", true);
+			applyViewProperties(mMainPane.add2DView("2D View", "Table\tcenter"), "2D", true);
+			applyViewProperties(mMainPane.add3DView("3D View", "Table\tcenter"), "3D", true);
 			for (int column=0; column<mTableModel.getTotalColumnCount(); column++) {
 				if (mTableModel.isColumnTypeStructure(column)) {
-					applyViewProperties(mMainPane.addStructureView("Structures", "Table\tcenter", column), "StructureView");
+					applyViewProperties(mMainPane.addStructureView("Structures", "Table\tcenter", column), "StructureView", true);
 					break;
 					}
 				}
 			}
 		else {
-			int viewCount = Integer.parseInt(viewCountString);
+			int viewCount = (viewCountString == null) ? 0 : Integer.parseInt(viewCountString);
 			for (int i=0; i<viewCount; i++) {
 				String viewType = getProperty(cMainViewType+i);
 				String tabName = getProperty(cMainViewName+i);
@@ -328,7 +336,13 @@ public class DERuntimeProperties extends RuntimeProperties {
 							   : viewType.equals(cViewTypeMacroEditor) ? mMainPane.addApplicationView(DEMainPane.VIEW_TYPE_MACRO_EDITOR, tabName, dockInfo)
 							   : null;
 				if (view != null)
-					applyViewProperties(view, "_" + tabName);
+					applyViewProperties(view, "_" + tabName, clearAllFirst);
+				}
+
+			if (!clearAllFirst) {
+				// we may have additional properties to already existing views
+				for (String viewName:mMainPane.getDockableTitles())
+					applyViewProperties(mMainPane.getView(viewName), "_" + viewName, clearAllFirst);
 				}
 
 			for (int i=0; i<viewCount; i++)
@@ -437,7 +451,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 			displayer.setMarkerLabelsBlackOrWhite("true".equals(blackOrWhite));
 		}
 
-	public void applyViewProperties(CompoundTableView view, String viewName) {
+	public void applyViewProperties(CompoundTableView view, String viewName, boolean isNewView) {
 		ViewConfiguration config = getViewConfiguration(viewName.substring(1));
 		if (config != null) {
 			config.apply(view);
@@ -447,7 +461,8 @@ public class DERuntimeProperties extends RuntimeProperties {
 		if (view instanceof DETableView) {
 			DETable table = ((DETableView)view).getTable();
 			String value = getProperty(cTableRowHeight+viewName);
-			table.setRowHeight(HiDPIHelper.scale(value == null ? 16 : Integer.parseInt(value)));
+			if (value != null || isNewView)
+				table.setRowHeight(HiDPIHelper.scale(value == null ? 16 : Integer.parseInt(value)));
 			value = getProperty(cViewFontSize+viewName);
 			if (value != null)
 				table.setFontSize(Integer.parseInt(value));
@@ -873,6 +888,10 @@ public class DERuntimeProperties extends RuntimeProperties {
 				int crossHairMode = decodeProperty(cCrossHairMode+viewName, JVisualization2D.CROSSHAIR_MODE_CODE);
 				if (crossHairMode != -1)
 					((JVisualization2D)visualization).setCrossHairMode(crossHairMode);
+
+				String crossHairList = getProperty(cCrossHairList+viewName);
+				if (crossHairList != null)
+					((JVisualization2D)visualization).setCrossHairList(crossHairList);
 
 				value = getProperty(cMultiValueMarkerColumns+viewName);
 				if (value != null) {
@@ -1331,11 +1350,17 @@ public class DERuntimeProperties extends RuntimeProperties {
 							JPruningBar pbar = vpanel.getPruningBar(j);
 							if (pbar.getLowValue() != pbar.getMinimumValue()) {
 								key = cAxisMin + viewName + "_" + j;
-								setProperty(key, ""+visualization.getVisibleMin(j));
+								float value = visualization.getVisibleMin(j);
+								if (visualization.isLogarithmicAxis(j))
+									value = (float)Math.pow(10, value);
+								setProperty(key, ""+value);
 								}
 							if (pbar.getHighValue() != pbar.getMaximumValue()) {
 								key = cAxisMax + viewName + "_" + j;
-								setProperty(key, ""+visualization.getVisibleMax(j));
+								float value = visualization.getVisibleMax(j);
+								if (visualization.isLogarithmicAxis(j))
+									value = (float)Math.pow(10, value);
+								setProperty(key, ""+value);
 								}
 							if (vpanel.getAutoZoomFactor() != 0f) {
 								key = cCachedAxisMin + viewName + "_" + j;
@@ -1601,6 +1626,10 @@ public class DERuntimeProperties extends RuntimeProperties {
 
 						if (((JVisualization2D)visualization).getCrossHairMode() != JVisualization2D.CROSSHAIR_MODE_AUTOMATIC)
 							setProperty(cCrossHairMode+viewName, JVisualization2D.CROSSHAIR_MODE_CODE[((JVisualization2D)visualization).getCrossHairMode()]);
+
+						String crossHairList = ((JVisualization2D)visualization).getCrossHairList();
+						if (crossHairList != null)
+							setProperty(cCrossHairList+viewName, crossHairList);
 
 						int[] multiValueMarkerColumn = ((JVisualization2D)visualization).getMultiValueMarkerColumns();
 						if (multiValueMarkerColumn != null) {

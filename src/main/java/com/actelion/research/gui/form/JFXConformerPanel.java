@@ -43,7 +43,7 @@ public class JFXConformerPanel extends JFXPanel {
 		mConstructionTask = new FutureTask<>(() -> {
 			Scene scene;
 
-			EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE;
+			EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE.clone();
 			if (allowEditing)
 				settings.add(V3DScene.ViewerSettings.EDITING);
 

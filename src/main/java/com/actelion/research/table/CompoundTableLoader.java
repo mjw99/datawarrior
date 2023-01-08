@@ -185,7 +185,7 @@ public class CompoundTableLoader implements CompoundTableConstants,Runnable {
 	/**
 	 * @param headerRow 0:no, 1:yes, 2:analyze
 	 */
-	public void paste(int headerRow) {
+	public void paste(int headerRow, boolean isReadOnly) {
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		if (!clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor))
 			return;
@@ -198,7 +198,7 @@ public class CompoundTableLoader implements CompoundTableConstants,Runnable {
 			else if (headerRow != 0)
 				mWithHeaderLine = analyzeHeaderLine(new StringReader(s));
 			mDataReader = new StringReader(s);
-			mAction = READ_DATA | REPLACE_DATA;
+			mAction = isReadOnly ? READ_DATA : READ_DATA | REPLACE_DATA;
 			mDataType = FileHelper.cFileTypeTextTabDelimited;
 			mNewWindowTitle = "Data From Clipboard";
 			mRuntimeProperties = null;
@@ -2773,11 +2773,12 @@ public class CompoundTableLoader implements CompoundTableConstants,Runnable {
 							// to parent columns may need to be translated
 						if (appendOrMergeDestColumn != null) {
 							if (key.equals(cColumnPropertyParentColumn)) {
-								int parentColumn = appendOrMergeDestColumn[getSourceColumn(value)];
-								if (parentColumn == NO_COLUMN)	// visible columns that have a parent (e.g. cluster no)
+								int sourceParentColumn = getSourceColumn(value);
+								int destParentColumn = (sourceParentColumn == NO_COLUMN) ? NO_COLUMN : appendOrMergeDestColumn[getSourceColumn(value)];
+								if (destParentColumn == NO_COLUMN)	// visible columns that have a parent (e.g. cluster no)
 									value = null;
 								else
-									value = mTableModel.getColumnTitleNoAlias(parentColumn);
+									value = mTableModel.getColumnTitleNoAlias(destParentColumn);
 								}
 							}
 
