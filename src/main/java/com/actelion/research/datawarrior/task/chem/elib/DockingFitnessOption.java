@@ -1,6 +1,6 @@
 package com.actelion.research.datawarrior.task.chem.elib;
 
-import com.actelion.research.calc.ProgressListener;
+import com.actelion.research.calc.ProgressController;
 import com.actelion.research.chem.Canonizer;
 import com.actelion.research.chem.IDCodeParserWithoutCoordinateInvention;
 import com.actelion.research.chem.Molecule;
@@ -19,14 +19,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DockingFitnessOption extends FitnessOption {
 	private String mCavityIDCode,mLigandIDCode;
 	private StereoMolecule mCavity,mLigand;
+	private ProgressController mProgressController;
+	private boolean mSkipProtonation;
 	private static ConcurrentHashMap<String,DockingEngine> sDockingEngineMap;
 
-	public DockingFitnessOption(String params, ProgressListener pl) {
+	public DockingFitnessOption(String params, ProgressController pc) {
+		mProgressController = pc;
 		String[] param = params.split("\\t");
-		if (param.length == 3) {
-			mSliderValue = Integer.parseInt(param[0]);
-			mCavityIDCode = param[1];
-			mLigandIDCode = param[2];
+
+		int index = 0;
+
+		if (param.length - index > 3 && param[0].equals(DockingFitnessPanel.CODE_SKIP_PROTONATION)) {
+			mSkipProtonation = true;
+			index++;
+		}
+
+		if (param.length - index == 3) {
+			mSliderValue = Integer.parseInt(param[index++]);
+			mCavityIDCode = param[index++];
+			mLigandIDCode = param[index++];
 			mCavity = new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(mCavityIDCode);
 			mLigand = new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(mLigandIDCode);
 			DETaskDockIntoProteinCavity.assignLikelyProtonationStates(mCavity);
@@ -99,10 +110,15 @@ public class DockingFitnessOption extends FitnessOption {
 			if (dockingEngine == null) {
 				try {
 					dockingEngine = new DockingEngine(mCavity, mLigand);
+					dockingEngine.setThreadMaster(mProgressController);
 				}
 				catch (DockingFailedException dfe) {
 					System.out.println(dfe.getMessage());
 					dfe.printStackTrace();
+					return Float.NaN;
+				}
+				catch (Throwable t) {
+					t.printStackTrace();
 					return Float.NaN;
 				}
 				sDockingEngineMap.put(Thread.currentThread().getName(), dockingEngine);
@@ -110,10 +126,11 @@ public class DockingFitnessOption extends FitnessOption {
 		}
 
 		StereoMolecule ligand = new StereoMolecule(mol);
-		DETaskDockIntoProteinCavity.assignLikelyProtonationStates(ligand);
+		if (!mSkipProtonation)
+			DETaskDockIntoProteinCavity.assignLikelyProtonationStates(ligand);
 		ConformerGenerator.addHydrogenAtoms(ligand);
 
-		DockingEngine.DockingResult dockingResult = null;
+		DockingEngine.DockingResult dockingResult;
 
 		try {
 			dockingResult = dockingEngine.dockMolecule(ligand);
@@ -121,6 +138,10 @@ public class DockingFitnessOption extends FitnessOption {
 		catch (DockingFailedException dfe) {
 			System.out.println(dfe.getMessage());
 			dfe.printStackTrace();
+			return Float.NaN;
+		}
+		catch (Throwable t) {
+			t.printStackTrace();
 			return Float.NaN;
 		}
 

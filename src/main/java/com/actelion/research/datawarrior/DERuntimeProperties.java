@@ -38,6 +38,7 @@ import com.actelion.research.util.DoubleFormat;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 import static com.actelion.research.table.MarkerLabelConstants.cOnePerCategoryMode;
 import static com.actelion.research.table.view.JVisualization.DEFAULT_LABEL_TRANSPARENCY;
@@ -45,6 +46,12 @@ import static com.actelion.research.table.view.JVisualization.cColumnUnassigned;
 
 public class DERuntimeProperties extends RuntimeProperties {
 	private static final long serialVersionUID = 0x20061101;
+
+	private static final String cRowTaskCount = "rowTaskCount";
+	private static final String cRowTaskCode = "rowTaskCode";
+	private static final String cRowTaskMenu = "rowTaskMenu";
+	private static final String cRowTaskItem = "rowTaskItem";
+	private static final String cRowTaskConfig = "rowTaskConfig";
 
 	private static final String cViewTypeTable = "tableView";
 	private static final String cViewType2D = "2Dview";
@@ -76,7 +83,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 	private static final String cFastRendering = "fastRendering";
 	private static final String cViewBackground = "background";
 	private static final String cTitleBackground = "titleBackground";
-	private static final String cLabelBackground = "labelBackground";
+	private static final String cDefaultLabelBackground = "labelBackground";
 	private static final String cLabelTransparency = "labelTransparency";
 	private static final String cFaceColor3D = "faceColor3D";
 	private static final String cAxisColumn = "axisColumn";
@@ -102,6 +109,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 	private static final String cSizeProportional = "sizeProportional";
 	private static final String cSizeAdaption = "sizeAdaption";
 	private static final String cLabelSize = "labelSize";
+	private static final String cLabelBackground = "_labelBG";
 	private static final String cLabelColumn = "labelColumn";
 	private static final String cLabelMode = "labelMode";
 	private static final String cLabelShowColumnNameInTable = "labelColumnNameInTable";
@@ -271,6 +279,20 @@ public class DERuntimeProperties extends RuntimeProperties {
 
 		boolean suppressMessages = DEMacroRecorder.getInstance().isRunningMacro()
 				&& (DEMacroRecorder.getInstance().getMessageMode() == DEMacroRecorder.MESSAGE_MODE_SKIP_ERRORS);
+
+		String rowTaskCountString = getProperty(cRowTaskCount);
+		if (rowTaskCountString != null) {
+			int rowTaskCount = Integer.parseInt(rowTaskCountString);
+			for (int i=0; i<rowTaskCount; i++) {
+				String taskCode = getProperty(cRowTaskCode+i);
+				String taskMenu = getProperty(cRowTaskMenu+i);
+				String taskItem = getProperty(cRowTaskItem+i);
+				String taskConfig = getProperty(cRowTaskConfig+i);
+				DETableRowTaskDef rtd = new DETableRowTaskDef(mParentPane.getParentFrame(), taskCode, taskConfig, taskMenu, taskItem);
+				if (rtd.isValid())
+				    mMainPane.addRowTask(rtd);
+				}
+			}
 
 		String mainSplitting = getProperty(cMainSplitting);
 		if (mainSplitting != null) {
@@ -605,9 +627,9 @@ public class DERuntimeProperties extends RuntimeProperties {
 			if (value != null)
 				visualization.setTitleBackground(Color.decode(value));
 
-			value = getProperty(cLabelBackground + viewName);
+			value = getProperty(cDefaultLabelBackground + viewName);
 			if (value != null)
-				visualization.setLabelBackground(Color.decode(value));
+				visualization.setDefaultLabelBackground(Color.decode(value));
 
 			value = getProperty(cLabelTransparency + viewName);
 			if (value != null)
@@ -668,6 +690,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 				}
 
 			applyViewColorProperties(viewName, visualization.getMarkerColor());
+			applyViewColorProperties(cLabelBackground+viewName, visualization.getLabelBackgroundColor());
 
 			value = getProperty(cShapeColumn+viewName);
 			if (value != null) {
@@ -1223,7 +1246,8 @@ public class DERuntimeProperties extends RuntimeProperties {
 				}
 			}
 		catch (Exception e) {
-//				JOptionPane.showMessageDialog(mParentFrame, "Invalid color settings");
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(mParentPane.getParentFrame(), "Invalid color settings");
 			}
 		}
 
@@ -1261,6 +1285,23 @@ public class DERuntimeProperties extends RuntimeProperties {
 
 	private void doLearn() {
 		super.learn();
+
+		ArrayList<DETableRowTaskDef> rowTasks = mMainPane.getRowTaskList();
+		if (!rowTasks.isEmpty()) {
+			setProperty(cRowTaskCount, Integer.toString(rowTasks.size()));
+			for (int i=0; i<rowTasks.size(); i++) {
+				DETableRowTaskDef taskDef = rowTasks.get(i);
+				setProperty(cRowTaskCode+i, taskDef.getTaskCode());
+				String menu = taskDef.getParentMenu();
+				if (menu != null)
+					setProperty(cRowTaskMenu+i, menu);
+				setProperty(cRowTaskItem+i, taskDef.getMenuItem());
+				String detail = taskDef.getTaskConfig();
+				if (detail != null)
+					setProperty(cRowTaskConfig+i, detail);
+				}
+			}
+
 		setProperty(cMainSplitting, DoubleFormat.toString(mParentPane.getMainSplitting()));
 		setProperty(cRightSplitting, DoubleFormat.toString(mParentPane.getRightSplitting()));
 		setProperty(cSelectedMainView, mMainPane.getSelectedViewTitle());
@@ -1389,8 +1430,8 @@ public class DERuntimeProperties extends RuntimeProperties {
 					if (!visualization.getViewBackground().equals(Color.WHITE))
 						setProperty(cViewBackground+viewName, ""+visualization.getViewBackground().getRGB());
 
-					if (!visualization.getLabelBackground().equals(JVisualization.DEFAULT_LABEL_BACKGROUND))
-						setProperty(cLabelBackground+viewName, ""+visualization.getLabelBackground().getRGB());
+					if (!visualization.getDefaultLabelBackground().equals(JVisualization.DEFAULT_LABEL_BACKGROUND))
+						setProperty(cDefaultLabelBackground +viewName, ""+visualization.getDefaultLabelBackground().getRGB());
 
 					if (visualization.getLabelTransparency() != DEFAULT_LABEL_TRANSPARENCY)
 						setProperty(cLabelTransparency+viewName, DoubleFormat.toString(visualization.getLabelTransparency()));
@@ -1448,6 +1489,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 						}
 
 					learnViewColorProperties(viewName, visualization.getMarkerColor());
+					learnViewColorProperties(cLabelBackground+viewName, visualization.getLabelBackgroundColor());
 
 					column = visualization.getMarkerShapeColumn();
 					if (column != JVisualization.cColumnUnassigned) {

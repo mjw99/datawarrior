@@ -34,28 +34,26 @@ public class JFXConformerPanel extends JFXPanel {
 	private V3DPopupMenuController mController;
 	private FutureTask<Object> mConstructionTask;
 
-	public JFXConformerPanel(boolean withSidePanel, boolean synchronousRotation, boolean allowEditing) {
-		this(withSidePanel, 512, 384, synchronousRotation, allowEditing);
+	public JFXConformerPanel(boolean withSidePanel) {
+		this(withSidePanel, 512, 384, V3DScene.CONFORMER_VIEW_MODE);
 	}
 
-	public JFXConformerPanel(boolean withSidePanel, int width, int height, boolean synchronousRotation, boolean allowEditing) {
+	public JFXConformerPanel(boolean withSidePanel, EnumSet<V3DScene.ViewerSettings> settings) {
+		this(withSidePanel, 512, 384, settings);
+	}
+
+	public JFXConformerPanel(boolean withSidePanel, int width, int height, EnumSet<V3DScene.ViewerSettings> settings) {
 		super();
 		mConstructionTask = new FutureTask<>(() -> {
 			Scene scene;
 
-			EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE.clone();
-			if (allowEditing)
-				settings.add(V3DScene.ViewerSettings.EDITING);
-
 			if (withSidePanel) {
 				V3DSceneWithSidePane sceneWithSidePanel = new V3DSceneWithSidePane(width, height, settings);
 				mScene = sceneWithSidePanel.getScene3D();
-				mScene.setIndividualRotationModus(synchronousRotation);
 				scene = new Scene(sceneWithSidePanel, width, height, true, SceneAntialiasing.BALANCED);
 			}
 			else {
 				mScene = new V3DScene(new Group(), width, height, settings);
-				mScene.setIndividualRotationModus(synchronousRotation);
 				V3DSceneWithSelection sws = new V3DSceneWithSelection(mScene);
 				scene = new Scene(sws, width, height, true, SceneAntialiasing.BALANCED);
 			}
@@ -85,11 +83,12 @@ public class JFXConformerPanel extends JFXPanel {
 	}
 
 	/**
-	 * Must be called directly after instantiation
 	 * @param controller
 	 */
 	public void setPopupMenuController(V3DPopupMenuController controller) {
 		mController = controller;
+		if (mScene != null)
+			mScene.setPopupMenuController(controller);
 	}
 
 	/**
@@ -184,8 +183,9 @@ public class JFXConformerPanel extends JFXPanel {
 	 * the ligand atom coordinates are used to determine the cavity surface in the ligand's vicinity.
 	 * @param cavity
 	 * @param ligand
+	 * @param optimizeView whether the view shall be centered after adding cavity
 	 */
-	public void setProteinCavity(StereoMolecule cavity, StereoMolecule ligand) {
+	public void setProteinCavity(StereoMolecule cavity, StereoMolecule ligand, boolean optimizeView) {
 		Platform.runLater(() -> {
 			if (ligand != null)
 				markAtomsInCropDistance(cavity, ligand, calculateCOG(ligand));
@@ -198,6 +198,9 @@ public class JFXConformerPanel extends JFXPanel {
 			mScene.addMolecule(mCavityMol);
 
 			mCavityMol.getMolecule().removeAtomMarkers();
+
+			if (optimizeView)
+				mScene.optimizeView();
 			} );
 		}
 
