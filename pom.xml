@@ -39,7 +39,7 @@
 		<netlib.version>1.1.2</netlib.version>
 
 		<!-- DB drivers -->
-		<ojdbc11.version>21.9.0.0</ojdbc11.version>
+		<ojdbc11.version>23.2.0.0</ojdbc11.version>
 		<postgresql.version>42.6.0</postgresql.version>
 		<mysql-connector-java.version>8.0.33</mysql-connector-java.version>
 		<mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
