@@ -41,7 +41,7 @@
 		<!-- DB drivers -->
 		<ojdbc11.version>21.9.0.0</ojdbc11.version>
 		<postgresql.version>42.6.0</postgresql.version>
-		<mysql-connector-java.version>8.0.32</mysql-connector-java.version>
+		<mysql-connector-java.version>8.0.33</mysql-connector-java.version>
 		<mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
 		<!-- End DB drivers -->
 
