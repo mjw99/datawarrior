@@ -10,6 +10,14 @@
 	<name>datawarrior</name>
 	<url>https://github.com/thsa/datawarrior</url>
 
+	<licenses>
+          <license>
+            <name>GPL-3.0-only</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+            <distribution>repo</distribution>
+         </license>
+        </licenses>
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
