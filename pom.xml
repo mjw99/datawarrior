@@ -63,17 +63,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.apache.xmlgraphics</groupId>
-			<artifactId>batik-dom</artifactId>
-			<version>${batik.version}</version>
-			<exclusions>
-				<exclusion>
-				<groupId>xml-apis</groupId>
-				<artifactId>xml-apis</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math</artifactId>
 			<version>${commons-math.version}</version>
@@ -120,11 +109,18 @@
 			<version>${vecmath.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.apache.xmlgraphics</groupId>
-			<artifactId>batik-svggen</artifactId>
-			<version>${batik.version}</version>
-		</dependency>
+                <dependency>
+                        <groupId>org.apache.xmlgraphics</groupId>
+                        <artifactId>batik-dom</artifactId>
+                        <version>${batik.version}</version>
+                        <exclusions>
+                                <exclusion>
+                                <groupId>xml-apis</groupId>
+                                <artifactId>xml-apis</artifactId>
+                                </exclusion>
+                        </exclusions>
+                </dependency>
+
 
 		<dependency>
 			<groupId>org.apache.xmlgraphics</groupId>
