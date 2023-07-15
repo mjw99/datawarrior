@@ -19,6 +19,7 @@
         </licenses>
 
 	<properties>
+		<maven.min-version>3.2.5</maven.min-version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
@@ -64,6 +65,8 @@
 		<maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
 		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.5.0</maven-shade-plugin.version>
+		<maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
+		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
 	</properties>
 
 	<dependencies>
@@ -258,6 +261,51 @@
 
 	<build>
 		<plugins>
+                        <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-enforcer-plugin</artifactId>
+				<version>${maven-enforcer-plugin.version}</version>
+                                <executions>
+
+                                        <execution>
+                                                <id>enforce-bytecode-version</id>
+                                                <goals>
+                                                        <goal>enforce</goal>
+                                                </goals>
+                                                <configuration>
+                                                        <rules>
+                                                                <enforceBytecodeVersion>
+                                                                        <maxJdkVersion>${maven.compiler.target}</maxJdkVersion>
+                                                                </enforceBytecodeVersion>
+                                                        </rules>
+                                                        <fail>true</fail>
+                                                </configuration>
+                                        </execution>
+
+                                        <execution>
+                                                <id>enforce-maven</id>
+                                                <goals>
+                                                        <goal>enforce</goal>
+                                                </goals>
+                                                <configuration>
+                                                        <rules>
+                                                                <requireMavenVersion>
+                                                                        <version>${maven.min-version}</version>
+                                                                </requireMavenVersion>
+                                                        </rules>
+                                                </configuration>
+                                        </execution>
+
+                                </executions>
+                                <dependencies>
+                                        <dependency>
+                                                <groupId>org.codehaus.mojo</groupId>
+                                                <artifactId>extra-enforcer-rules</artifactId>
+						<version>${extra-enforcer-rules.version}</version>
+                                        </dependency>
+                                </dependencies>
+                        </plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
