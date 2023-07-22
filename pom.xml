@@ -45,6 +45,7 @@
 		<jblas.version>1.2.5</jblas.version>
 		<ejml.version>0.39</ejml.version>
 		<netlib.version>1.1.2</netlib.version>
+		<commons-compiler.version>2.7.4</commons-compiler.version>
 
 		<!-- DB drivers -->
 		<ojdbc11.version>23.2.0.0</ojdbc11.version>
@@ -218,6 +219,12 @@
 			<artifactId>all</artifactId>
 			<type>pom</type>
 			<version>${netlib.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.codehaus.janino</groupId>
+			<artifactId>commons-compiler</artifactId>
+			<version>${commons-compiler.version}</version>
 		</dependency>
 
 		<dependency>
