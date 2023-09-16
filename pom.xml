@@ -37,7 +37,7 @@
 		<opsin.version>2.7.0</opsin.version>
 		<jna-inchi.version>1.2</jna-inchi.version>
 		<openjfx.version>19.0.2.1</openjfx.version>
-		<batik.version>1.16</batik.version>
+		<batik.version>1.17</batik.version>
 		<vecmath.version>1.5.2</vecmath.version>
 		<jep.version>2.4.2</jep.version>
 		<commons-math.version>2.2</commons-math.version>
@@ -53,7 +53,7 @@
 		<ojdbc11.version>23.2.0.0</ojdbc11.version>
 		<postgresql.version>42.6.0</postgresql.version>
 		<mysql-connector-java.version>8.1.0</mysql-connector-java.version>
-		<mssql-jdbc.version>12.2.0.jre11</mssql-jdbc.version>
+		<mssql-jdbc.version>12.4.1.jre11</mssql-jdbc.version>
 		<!-- End DB drivers -->
 
 		<!-- Use:

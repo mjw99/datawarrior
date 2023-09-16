@@ -30,7 +30,7 @@ git clone https://github.com/thsa/datawarrior.git
 ```
 git clone https://github.com/thsa/fxmolviewer.git
 cd fxmolviewer
-mvn clean install
+mvn clean install "-DreleaseVersion=0.0.1-SNAPSHOT"
 
 cd ..
 git clone https://github.com/mjw99/datawarrior
