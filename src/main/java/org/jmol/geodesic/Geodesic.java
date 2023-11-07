@@ -402,7 +402,7 @@ public class Geodesic {
       v1 = v2;
       v2 = t;
     }
-    Integer hashKey = new Integer((v1 << 16) + v2);
+    Integer hashKey = Integer.valueOf((v1 << 16) + v2);
     Short iv = (Short)htVertex.get(hashKey);
     if (iv != null)
       return iv.shortValue();
@@ -411,7 +411,7 @@ public class Geodesic {
     newVertexVector.add(vertexVectors[v2]);
     newVertexVector.scale(0.5f);
     newVertexVector.normalize();
-    htVertex.put(hashKey, new Short(vertexNext));
+    htVertex.put(hashKey, Short.valueOf(vertexNext));
     return vertexNext++;
   }
 }
