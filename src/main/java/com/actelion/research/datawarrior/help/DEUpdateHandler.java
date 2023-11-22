@@ -16,8 +16,10 @@
  * @author Thomas Sander
  */
 
-package com.actelion.research.datawarrior;
+package com.actelion.research.datawarrior.help;
 
+import com.actelion.research.datawarrior.DEFrame;
+import com.actelion.research.datawarrior.DataWarrior;
 import com.actelion.research.datawarrior.task.AbstractTask;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.util.BrowserControl;
@@ -40,6 +42,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.prefs.Preferences;
 
 public class DEUpdateHandler extends JDialog implements ActionListener {
@@ -47,7 +51,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	private static final String URL2 = "http://datawarrior.org:8084";
 	private static final String DEFAULT_UPDATE_URL = "https://openmolecules.org/datawarrior/update";
 
-	public static final String DATAWARRIOR_VERSION = "v05.06.00";	// format must be v00.00.00
+	public static final String DATAWARRIOR_VERSION = "v05.08.00";	// format must be v00.00.00
 
 	private static final String PREFERENCES_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	public static final String PREFERENCES_POST_INSTALL_INFO_FAILURE_MILLIS = "post_install_info_failure_time";
@@ -59,6 +63,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	public static final int PREFERENCES_UPDATE_MODE_ASK = 1;
 	public static final int PREFERENCES_UPDATE_MODE_NEVER = 2;
 	public static final String PREFERENCES_KEY_UPDATE_PATH = "update_path";
+	public static final String PREFERENCES_KEY_HANDLED_NEWS_IDS = "handledNewsIDs";
 
 	private static final String PROPERTY_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	private static final String PROPERTY_AUTO_UPDATE_VERSION = "auto_update_version"; // format v00.00.00
@@ -68,13 +73,22 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	private static final String PROPERTY_MANUAL_UPDATE_DETAIL = "manual_update_detail";
 	private static final String PROPERTY_MANUAL_UPDATE_URL = "manual_update_url";
 
+	private static final String PROPERTY_NEWS_TITLE = "news_title_";
+	private static final String PROPERTY_NEWS_IMAGE = "news_image_";
+	private static final String PROPERTY_NEWS_URL = "news_url_";
+	private static final String PROPERTY_NEWS_TYPE = "news_type_";
+
 	private static final long serialVersionUID = 20230822;
 	private static final String BROKEN_FILE_NAME = "broken_datawarrior.jar";
 
-	private static volatile boolean sOK;
+	private static volatile boolean sOK,sIsUpdating;
 	private static volatile Properties sPostInstallInfo;
 
-	private static void handlePostInstallMessages() {
+	public static boolean isUpdating() {
+		return sIsUpdating;
+		}
+
+	private static void handlePostInstallMessages(DEFrame parent) {
 		Preferences prefs = DataWarrior.getPreferences();
 
 		String current2ndURL = prefs.get(PREFERENCES_2ND_POST_INSTALL_INFO_SERVER, null);
@@ -87,13 +101,41 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 			prefs.put(PREFERENCES_2ND_POST_INSTALL_INFO_SERVER, new2ndURL);
 			}
 
-		// TODO other service URLs and news messages
+		// TODO other service URLs
+
+		Set<String> propertyNames = sPostInstallInfo.stringPropertyNames();
+		TreeMap<String, DENews> newsMap = new TreeMap<>();
+		for (String propertyName : propertyNames) {
+			if (propertyName.startsWith(PROPERTY_NEWS_TITLE)) {
+				String newsID = propertyName.substring(PROPERTY_NEWS_TITLE.length());
+				String title = sPostInstallInfo.getProperty(propertyName);
+				String image = sPostInstallInfo.getProperty(PROPERTY_NEWS_IMAGE.concat(newsID));
+				String url = sPostInstallInfo.getProperty(PROPERTY_NEWS_URL.concat(newsID));
+				String type = sPostInstallInfo.getProperty(PROPERTY_NEWS_TYPE.concat(newsID));
+				newsMap.put(newsID, new DENews(title, image, url, type));
+				}
+			}
+
+		String oldHandledNewsIDs = prefs.get(PREFERENCES_KEY_HANDLED_NEWS_IDS, "");
+		StringBuilder newHandledNewsIDs = new StringBuilder(":");
+
+		for (String newsID : newsMap.keySet()) {
+			DENews news = newsMap.get(newsID);
+			if (news.isPermanent())
+				parent.getMainFrame().getMainPane().setPermanentNews(news);
+			else if (!oldHandledNewsIDs.contains(":".concat(newsID).concat(":")))
+				news.show();
+
+			newHandledNewsIDs.append(newsID);
+			newHandledNewsIDs.append(":");
+			}
+
+		SwingUtilities.invokeLater(() -> parent.getDEMenuBar().updateNewsMenu(newsMap) );
+
+		prefs.put(PREFERENCES_KEY_HANDLED_NEWS_IDS, newHandledNewsIDs.toString());
 		}
 
-	public static void getPostInstallInfoAndHandleUpdates(Frame parent, boolean skipUpdateHandling) {
-		if ("true".equals(System.getProperty("development")) && !"test".equals(System.getProperty("update")))
-			return;
-
+	public static void getPostInstallInfoAndHandleUpdates(DEFrame parent, boolean skipUpdateHandling) {
 		new Thread(() -> {
 			Preferences prefs = DataWarrior.getPreferences();
 
@@ -112,7 +154,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 
 			boolean consistentFailure = false;
 			if (error == null) {
-				handlePostInstallMessages();
+				handlePostInstallMessages(parent);
 				prefs.putLong(PREFERENCES_POST_INSTALL_INFO_FAILURE_MILLIS, 0L);
 				}
 			else {
@@ -172,54 +214,84 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 					return;
 				}
 
-			String updateName = "datawarrior_"+availableVersion+".jar";
 			String updatePath = getUpdatePath(parent);
 			if (updatePath != null) {
 				String md5sum = sPostInstallInfo.getProperty(PROPERTY_AUTO_UPDATE_MD5SUM);
-				final String path = updatePath.concat(File.separator).concat(updateName);
+				final String updateName = "datawarrior_"+availableVersion;
+				final String tempFilePath = updatePath.concat(File.separator).concat(updateName).concat(".temp");
+				final String finalFilePath = updatePath.concat(File.separator).concat(updateName).concat(".jar");
 
 				// Don't download, if we have that file already
-				if (new File(path).exists()) {
-					if (md5sum == null || md5sum.equals(md5sum(path)))
+				File finalFile = new File(finalFilePath);
+				if (finalFile.exists()) {
+					if (md5sum == null || md5sum.equalsIgnoreCase(md5sum(finalFilePath)))
 						return;
+
 					// If we have an older file with unexpected md5sum, then delete that.
 					try {
-						new File(path).delete();
+						finalFile.delete();
 						}
 					catch (SecurityException e) {
 						SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-								"DataWarrior could not delete existing '"+path+"'.\nMessage: "+e.getMessage(),
+								"DataWarrior could not delete broken file '"+finalFilePath+"'.\nTry deleting it manually!\nMessage: "+e.getMessage(),
 								"Deletion Failed", JOptionPane.ERROR_MESSAGE));
+						return;
+						}
+					}
+
+				File tempFile = new File(tempFilePath);
+				if (tempFile.exists()) {
+					if (md5sum == null || md5sum.equalsIgnoreCase(md5sum(tempFilePath))) {
+						try {
+							tempFile.renameTo(finalFile);
+							}
+						catch (SecurityException e) {
+							SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
+									"DataWarrior could not rename successfully downloaded '"+tempFilePath+"'.\nMessage: "+e.getMessage(),
+									"File Rename Failed", JOptionPane.ERROR_MESSAGE));
+							}
+						return;
+						}
+
+					// If we have an older file with unexpected md5sum, then delete that.
+					try {
+						tempFile.delete();
+						}
+					catch (SecurityException e) {
+						SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
+								"DataWarrior could not delete broken file '"+tempFilePath+"'.\nTry deleting it manually!\nMessage: "+e.getMessage(),
+								"Deletion Failed", JOptionPane.ERROR_MESSAGE));
+						return;
 						}
 					}
 
 				try {
-					URL url = new URL(updateURL+"/"+updateName);
+					sIsUpdating = true;
+					URL url = new URL(updateURL+"/"+updateName+".jar");
 					ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-					FileOutputStream fileOutputStream = new FileOutputStream(path);
+					FileOutputStream fileOutputStream = new FileOutputStream(tempFilePath);
 					FileChannel fileChannel = fileOutputStream.getChannel();
 					fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 					if (md5sum != null) {
-						String checksum = md5sum(path);
+						String checksum = md5sum(tempFilePath);
 						if (!md5sum.equalsIgnoreCase(checksum)) {
 							SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-									"DataWarrior could download and write file '"+path
+									"DataWarrior could download and write file '"+tempFilePath
 											+ "', but its md5sum\n"+checksum+" does not match the expected one "+md5sum,
 									"MD5 Mismatch", JOptionPane.ERROR_MESSAGE));
-							File brokenFile = new File(updatePath.concat(File.separator).concat(BROKEN_FILE_NAME));
-							if (brokenFile.exists()) {
-								try {
-									brokenFile.delete();
-									new File(path).renameTo(brokenFile);
-									}
-								catch (Exception e) {
-									SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-											"DataWarrior could not delete existing '"+path+"'.\nMessage: "+e.getMessage(),
-											"Deletion Failed", JOptionPane.ERROR_MESSAGE));
-									}
-								}
+							sIsUpdating = false;
 							return;
 							}
+						}
+					try {
+						tempFile.renameTo(finalFile);
+						}
+					catch (SecurityException e) {
+						SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
+								"DataWarrior could not rename successfully downloaded '"+tempFilePath+"'.\nMessage: "+e.getMessage(),
+								"File Rename Failed", JOptionPane.ERROR_MESSAGE));
+						sIsUpdating = false;
+						return;
 						}
 					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
 							"DataWarrior has successfully updated to version '"+availableVersion+"'.\nNext time you start DataWarrior, this version will be used.",
@@ -227,9 +299,15 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 					}
 				catch (IOException ioe) {
 					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
-							"DataWarrior could not download or write file '"+path+"'.\nMessage: "+ioe.getMessage(),
+							"DataWarrior could not download or write file '"+tempFilePath+"'.\nMessage: "+ioe.getMessage(),
 							"Download Failed", JOptionPane.ERROR_MESSAGE));
 					}
+				catch (Throwable t) {
+					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
+							"Unexpected failure in DataWarrior update procedure\nMessage: "+t.getMessage(),
+							"DataWarrior Update Failed", JOptionPane.ERROR_MESSAGE));
+					}
+				sIsUpdating = false;
 				}
 			} ).start();
 		}

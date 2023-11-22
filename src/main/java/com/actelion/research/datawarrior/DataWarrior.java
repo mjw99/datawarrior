@@ -21,6 +21,8 @@ package com.actelion.research.datawarrior;
 import com.actelion.research.chem.Molecule;
 import com.actelion.research.chem.name.StructureNameResolver;
 import com.actelion.research.chem.reaction.mapping.ChemicalRuleEnhancedReactionMapper;
+import com.actelion.research.datawarrior.help.DEAboutDialog;
+import com.actelion.research.datawarrior.help.DEUpdateHandler;
 import com.actelion.research.datawarrior.plugin.PluginRegistry;
 import com.actelion.research.datawarrior.task.DEMacroRecorder;
 import com.actelion.research.datawarrior.task.DETaskSelectWindow;
@@ -395,6 +397,13 @@ public abstract class DataWarrior implements WindowFocusListener {
 			if (disposeFrameSafely(frame, isInteractive) == 0)
 				return;
 			}
+		}
+
+	private void exit() {
+		if (DEUpdateHandler.isUpdating())
+			JOptionPane.showMessageDialog(getActiveFrame(), "Cannot exit, while update is downloading....");
+		while (DEUpdateHandler.isUpdating())
+			try { Thread.sleep(100); } catch (InterruptedException ie) {}
 
 		System.exit(0);
 		}
@@ -415,7 +424,7 @@ public abstract class DataWarrior implements WindowFocusListener {
 		int result = disposeFrameSafely(frame, isInteractive);
 
 		if (!isMacintosh() && mFrameList.size() == 0)
-			System.exit(0);
+			exit();
 
 		return result;
 		}
@@ -458,7 +467,7 @@ public abstract class DataWarrior implements WindowFocusListener {
 				return;
 
 		if (!isMacintosh())
-			System.exit(0);
+			exit();
 		}
 
 	/**
@@ -473,7 +482,7 @@ public abstract class DataWarrior implements WindowFocusListener {
 		while (mFrameList.size() != 0)
 			closeFrameSilently(getActiveFrame(), saveContent);
 
-		System.exit(0);
+		exit();
 		}
 
 	/**
