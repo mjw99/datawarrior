@@ -33,6 +33,7 @@ import com.actelion.research.gui.FileHelper;
 import com.actelion.research.gui.HeaderPaintHelper;
 import com.actelion.research.gui.editor.GenericEditorArea;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
+import com.actelion.research.gui.hidpi.HiDPIIcon;
 import com.actelion.research.table.model.CompoundTableDetailHandler;
 import com.actelion.research.table.model.CompoundTableModel;
 import com.actelion.research.table.view.JVisualization;
@@ -57,8 +58,11 @@ public abstract class DataWarrior implements WindowFocusListener {
 	private static final String PREFERENCES_ROOT = "org.openmolecules.datawarrior";
 	public static final String PREFERENCES_KEY_FIRST_LAUNCH = "first_launch";
 	public static final String PREFERENCES_KEY_LAST_VERSION_ERROR = "last_version_error";
+	public static final String PREFERENCES_KEY_DPI_SCALING = "dpiScaling";
 	public static final String PREFERENCES_KEY_LAF_NAME = "laf_name";
 	public static final String PREFERENCES_KEY_SPAYA_SERVER = "spaya_server";
+	public static final String PREFERENCES_KEY_RECENT_FILE = "recentFile";
+	public static final int MAX_RECENT_FILE_COUNT = 24;
 
 	public static boolean USE_CARDS_VIEW = false;
 
@@ -70,30 +74,52 @@ public abstract class DataWarrior implements WindowFocusListener {
 	private boolean mIsCapkaAvailable;
 
 	public enum LookAndFeel {
-		GRAPHITE("Graphite", "org.pushingpixels.substance.api.skin.SubstanceGraphiteAquaLookAndFeel", new Color(0x3838C0), new Color(0x252560)),
-		GRAY("Gray", "org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel", new Color(0xAEDBFF), new Color(0x0060FF)),
-		CREME("Creme Coffee", "org.pushingpixels.substance.api.skin.SubstanceCremeCoffeeLookAndFeel", new Color(0xDEC59D), new Color(0xAA784F)),
-		MODERATE("Moderate", "org.pushingpixels.substance.api.skin.SubstanceModerateLookAndFeel", new Color(0x6D96B3), new Color(0x1E4C6F)),
-		NEBULA("Nebula", "org.pushingpixels.substance.api.skin.SubstanceNebulaLookAndFeel", new Color(0xA7BBCD), new Color(0x55585E)),
-		SAHARA("Sahara", "org.pushingpixels.substance.api.skin.SubstanceSaharaLookAndFeel", new Color(0xA6B473), new Color(0x6E7841)),
-	//	CLASSIC("Classic", "org.jvnet.substance.SubstanceLookAndFeel"),	causes long delays when opening large files with many selected rows, because it draws the background of even invisible cells
-	//	VAQUA("VAqua", "org.violetlib.aqua.AquaLookAndFeel"),
-		AQUA("Aqua", "com.apple.laf.AquaLookAndFeel", new Color(0xAEDBFF), new Color(0x0060FF));
+		NIGHT("Night", "org.pushingpixels.radiance.theming.api.skin.RadianceNightShadeLookAndFeel", true, 0x592090, 0x2e0951, 0xbc8beb),
+		GRAPHITE("Graphite", "org.pushingpixels.radiance.theming.api.skin.RadianceGraphiteLookAndFeel", true, 0x3838C0, 0x252560, 0xa6a6fa),
+		GRAY("Gray", "org.pushingpixels.radiance.theming.api.skin.RadianceMistSilverLookAndFeel", false, 0xAEDBFF, 0x0060FF, 0x003bdb),
+		CREME("Creme Coffee", "org.pushingpixels.radiance.theming.api.skin.RadianceCremeCoffeeLookAndFeel", false, 0xDEC59D, 0xAA784F, 0x754a06),
+		MODERATE("Moderate", "org.pushingpixels.radiance.theming.api.skin.RadianceModerateLookAndFeel", false, 0x6D96B3, 0x1E4C6F, 0x126194),
+		NEBULA("Nebula", "org.pushingpixels.radiance.theming.api.skin.RadianceNebulaLookAndFeel", false, 0xA7BBCD, 0x55585E, 0x48729c),
+		SAHARA("Sahara", "org.pushingpixels.radiance.theming.api.skin.RadianceSaharaLookAndFeel", false, 0xA6B473, 0x6E7841, 0x69801a),
+//		VAQUA("VAqua", "org.violetlib.aqua.AquaLookAndFeel", false, 0xAEDBFF, 0x0060FF),
+		AQUA("Aqua", "com.apple.laf.AquaLookAndFeel", false, 0xAEDBFF, 0x0060FF, 0x006aff);
 
 		private final String displayName;
 		private String className;
-		private Color c1,c2;
+		private boolean isDark;
+		private int rgb1,rgb2,rgb3;
 
-		LookAndFeel(String displayName, String className, Color c1, Color c2) {
+		/**
+		 *
+		 * @param displayName
+		 * @param className
+		 * @param isDark
+		 * @param rgb1 lighter header gradient at top
+		 * @param rgb2 darker header gradient at bottom
+		 * @param rgb3 icon spot color
+		 */
+		LookAndFeel(String displayName, String className, boolean isDark, int rgb1, int rgb2, int rgb3) {
 			this.displayName = displayName;
 			this.className = className;
-			this.c1 = c1;
-			this.c2 = c2;
+			this.isDark = isDark;
+			this.rgb1 = rgb1;
+			this.rgb2 = rgb2;
+			this.rgb3 = rgb3;
 			}
+
 		public String displayName() { return displayName; }
 		public String className() { return className; }
-		public Color getColor1() { return c1; }
-		public Color getColor2() { return c2; }
+		public int getRGB1() {
+			if (System.getProperty("development") != null)
+				return isDark ? 0xC0C000 : 0xFFFFCD;
+			return rgb1;
+			}
+
+		public int getRGB2() {
+			if (System.getProperty("development") != null)
+				return isDark ? 0x404000 : 0xAD9C00;
+			return rgb2;
+			}
 		}
 
 	private static DataWarrior	sApplication;
@@ -390,13 +416,15 @@ public abstract class DataWarrior implements WindowFocusListener {
 
 	/**
 	 * @param isInteractive
+	 * @return true, if all windows could be closed
 	 */
-	public void closeApplication(boolean isInteractive) {
+	public boolean closeApplication(boolean isInteractive) {
 		while (mFrameList.size() != 0) {
 			DEFrame frame = getActiveFrame();
 			if (disposeFrameSafely(frame, isInteractive) == 0)
-				return;
+				return false;
 			}
+		return true;
 		}
 
 	private void exit() {
@@ -525,6 +553,11 @@ public abstract class DataWarrior implements WindowFocusListener {
 	 */
 	public void setInitialLookAndFeel() {
 		Preferences prefs = Preferences.userRoot().node(PREFERENCES_ROOT);
+
+		String dpiScaling = prefs.get(PREFERENCES_KEY_DPI_SCALING, "");
+		if (!dpiScaling.isEmpty())
+			HiDPIHelper.setUIScaleFactor(Float.parseFloat(dpiScaling));
+
 		String lafClass = prefs.get(PREFERENCES_KEY_LAF_NAME, "");
 
 		// we don't support the old substance LaF anymore. Use NEBULA instead
@@ -550,9 +583,26 @@ public abstract class DataWarrior implements WindowFocusListener {
 	 * @return false, if the look&feel could not be found or activated
 	 */
 	public boolean setLookAndFeel(LookAndFeel laf) {
+		final int[] DEV_SPOT_COLORS_DARK_LAF = { 0xE0E000, 0xE0E0E0 };
+		final int[] DEV_SPOT_COLORS_BRIGHT_LAF = { 0x707000, 0x000000 };
 		try {
 			UIManager.setLookAndFeel(laf.className);
-			HeaderPaintHelper.setSpotColors(laf.getColor1(), laf.getColor2());
+			int[] rgb = new int[2];
+			rgb[0] = laf.getRGB1();
+			rgb[1] = laf.getRGB2();
+			HeaderPaintHelper.setThemeColors(rgb);
+			if (System.getProperty("development") != null) {
+				if (laf.isDark)
+					HiDPIIcon.setIconSpotColors(DEV_SPOT_COLORS_DARK_LAF);
+				else
+					HiDPIIcon.setIconSpotColors(DEV_SPOT_COLORS_BRIGHT_LAF);
+				}
+			else {
+				int[] spotColorRGB = new int[2];
+				spotColorRGB[0] = laf.rgb3;
+				spotColorRGB[1] = laf.isDark ? DEV_SPOT_COLORS_DARK_LAF[1] : DEV_SPOT_COLORS_BRIGHT_LAF[1];
+				HiDPIIcon.setIconSpotColors(spotColorRGB);
+				}
 			makeTooltipsTranslucent();
 			return true;
 			}
@@ -727,6 +777,13 @@ public abstract class DataWarrior implements WindowFocusListener {
 			}
 		}
 
+	public void handleCustomURI(String[] args) {
+		// For testing purposes we just display the URI data...
+		System.out.println("Custom URI:");
+		for (String arg:args)
+			System.out.println(arg);
+		}
+
 	public void updateRecentFiles(File file) {
 		if (file == null || !file.exists())
 			return;
@@ -741,20 +798,20 @@ public abstract class DataWarrior implements WindowFocusListener {
 		try {
 			Preferences prefs = getPreferences();
 
-			String[] recentFileName = new String[StandardMenuBar.MAX_RECENT_FILE_COUNT+1];
-			for (int i=1; i<=StandardMenuBar.MAX_RECENT_FILE_COUNT; i++)
-				recentFileName[i] = prefs.get(StandardMenuBar.PREFERENCES_KEY_RECENT_FILE+i, "");
+			String[] recentFileName = new String[MAX_RECENT_FILE_COUNT+1];
+			for (int i=1; i<=MAX_RECENT_FILE_COUNT; i++)
+				recentFileName[i] = prefs.get(PREFERENCES_KEY_RECENT_FILE+i, "");
 
 			recentFileName[0] = file.getCanonicalPath();
-			for (int i=1; i<StandardMenuBar.MAX_RECENT_FILE_COUNT; i++) {
+			for (int i=1; i<MAX_RECENT_FILE_COUNT; i++) {
 				if (recentFileName[0].equals(recentFileName[i])) {
-					for (int j=i+1; j<=StandardMenuBar.MAX_RECENT_FILE_COUNT; j++)
+					for (int j=i+1; j<=MAX_RECENT_FILE_COUNT; j++)
 						recentFileName[j-1] = recentFileName[j];
 					}
 				}
 
-			for (int i=0; i<StandardMenuBar.MAX_RECENT_FILE_COUNT && recentFileName[i].length() != 0; i++)
-				prefs.put(StandardMenuBar.PREFERENCES_KEY_RECENT_FILE+(i+1), recentFileName[i]);
+			for (int i=0; i<MAX_RECENT_FILE_COUNT && recentFileName[i].length() != 0; i++)
+				prefs.put(PREFERENCES_KEY_RECENT_FILE+(i+1), recentFileName[i]);
 
 			for (DEFrame frame:getFrameList())
 				frame.getDEMenuBar().updateRecentFileMenu();

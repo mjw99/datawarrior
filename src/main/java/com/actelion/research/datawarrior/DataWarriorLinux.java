@@ -19,8 +19,10 @@
 package com.actelion.research.datawarrior;
 
 import com.actelion.research.gui.LookAndFeelHelper;
-import org.pushingpixels.substance.api.fonts.FontPolicy;
-import org.pushingpixels.substance.api.fonts.FontSet;
+import com.actelion.research.gui.hidpi.HiDPIHelper;
+import org.pushingpixels.radiance.common.api.font.FontPolicy;
+import org.pushingpixels.radiance.common.api.font.FontSet;
+import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
 
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
@@ -29,7 +31,7 @@ import java.util.ArrayList;
 import static com.actelion.research.datawarrior.DataWarrior.LookAndFeel.*;
 
 public class DataWarriorLinux extends DataWarrior {
-	private static final LookAndFeel[] LOOK_AND_FEELS = { GRAPHITE, GRAY, MODERATE, CREME, SAHARA, NEBULA };
+	private static final LookAndFeel[] LOOK_AND_FEELS = { NIGHT, GRAPHITE, GRAY, MODERATE, CREME, SAHARA, NEBULA };
 
 	private static final LookAndFeel DEFAULT_LAF = GRAPHITE;
 
@@ -91,20 +93,31 @@ public class DataWarriorLinux extends DataWarrior {
 	 */
 	public static void initSingleApplication(String[] args) {
 		if (args != null && args.length != 0) {
-			String[] filename = sDataExplorer.deduceFileNamesFromArgs(args);
-			if (sDataExplorer == null) {
-				if (sPendingDocumentList == null)
-					sPendingDocumentList = new ArrayList<>();
-
-				for (String f:filename)
-					sPendingDocumentList.add(f);
+			if (args[0].toLowerCase().startsWith("datawarrior:")) {
+				try {
+					SwingUtilities.invokeAndWait(() -> {
+						if (sDataExplorer != null)
+							sDataExplorer.handleCustomURI(args);
+						} );
+					}
+				catch(Exception e) {}
 				}
 			else {
-				for (final String f:filename) {
-					try {
-						SwingUtilities.invokeAndWait(() -> sDataExplorer.readFile(f) );
+				String[] filename = sDataExplorer.deduceFileNamesFromArgs(args);
+				if (sDataExplorer == null) {
+					if (sPendingDocumentList == null)
+						sPendingDocumentList = new ArrayList<>();
+
+					for (String f:filename)
+						sPendingDocumentList.add(f);
+					}
+				else {
+					for (final String f:filename) {
+						try {
+							SwingUtilities.invokeAndWait(() -> sDataExplorer.readFile(f) );
+							}
+						catch(Exception e) {}
 						}
-					catch(Exception e) {}
 					}
 				}
 			}
@@ -124,46 +137,25 @@ public class DataWarriorLinux extends DataWarrior {
 		return DEFAULT_LAF;
 		}
 
-	private void setFontSetNewSubstance(final float factor) {
+	private void setNewRadianceFontSet(final float factor) {
 		// reset the base font policy to null - this
 		// restores the original font policy (default size).
-		org.pushingpixels.substance.api.SubstanceLookAndFeel.setFontPolicy(null);
+		RadianceThemingCortex.GlobalScope.setFontPolicy(null);
 
 		// reduce the default font size a little
-		final FontSet substanceCoreFontSet = org.pushingpixels.substance.api.SubstanceLookAndFeel.getFontPolicy().getFontSet("Substance", null);
-		FontPolicy newFontPolicy = new FontPolicy() {
-			public FontSet getFontSet(String lafName, UIDefaults table) {
-				return new NewSubstanceFontSet(substanceCoreFontSet, factor);
-				}
-			};
-		org.pushingpixels.substance.api.SubstanceLookAndFeel.setFontPolicy(newFontPolicy);
-
-// Use the following for JRE 18 and Radiance port!!!
-//		RadianceThemingCortex.GlobalScope.setFontPolicy(null);
-
-		// reduce the default font size a little
-//		final FontSet substanceCoreFontSet = RadianceThemingCortex.GlobalScope.getFontPolicy().getFontSet();
-//		FontPolicy newFontPolicy = new FontPolicy() {
-//			public FontSet getFontSet() {
-//				return new NewSubstanceFontSet(substanceCoreFontSet, factor);
-//			}
-//		};
-//		RadianceThemingCortex.GlobalScope.setFontPolicy(newFontPolicy);
-	}
+		final FontSet substanceCoreFontSet = RadianceThemingCortex.GlobalScope.getFontPolicy().getFontSet();
+		FontPolicy newFontPolicy = () -> new NewSubstanceFontSet(substanceCoreFontSet, factor);
+		RadianceThemingCortex.GlobalScope.setFontPolicy(newFontPolicy);
+		}
 
 	@Override
 	public boolean setLookAndFeel(LookAndFeel laf) {
-		float fontFactor = 1f;
-		String dpiFactor = System.getProperty("dpifactor");
-		if (dpiFactor != null) {
-			try { fontFactor = Float.parseFloat(dpiFactor); } catch (NumberFormatException nfe) {}
-			System.getProperties().remove("dpifactor");  // prevent HiDPIHelper from applying factor a second time
-			}
-
 		if (super.setLookAndFeel(laf)) {
+			float fontFactor = HiDPIHelper.getUIScaleFactor();
 			if (fontFactor != 1f) {
-				if (LookAndFeelHelper.isNewSubstance()) {
-					setFontSetNewSubstance(fontFactor);
+				if (LookAndFeelHelper.isNewSubstance()
+				 || LookAndFeelHelper.isRadiance()) {
+					setNewRadianceFontSet(fontFactor);
 					}
 				}
 			return true;
@@ -185,9 +177,14 @@ public class DataWarriorLinux extends DataWarrior {
 				sDataExplorer = new DataWarriorLinux();
 
 				if (args != null && args.length != 0) {
-					String[] filename = sDataExplorer.deduceFileNamesFromArgs(args);
-					for (String f:filename)
-						sDataExplorer.readFile(f);
+					if (args[0].toLowerCase().startsWith("datawarrior:")) {
+						sDataExplorer.handleCustomURI(args);
+						}
+					else {
+						String[] filename = sDataExplorer.deduceFileNamesFromArgs(args);
+						for (String f:filename)
+							sDataExplorer.readFile(f);
+						}
 					}
 
 				if (sPendingDocumentList != null) {

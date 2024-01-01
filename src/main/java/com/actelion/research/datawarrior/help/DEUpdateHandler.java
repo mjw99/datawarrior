@@ -28,7 +28,6 @@ import info.clearthought.layout.TableLayout;
 import org.openmolecules.comm.ServerErrorException;
 
 import javax.swing.*;
-import javax.xml.bind.DatatypeConverter;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
@@ -53,7 +52,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 
 	// IMPORTANT: When creating a new manual(!!!) installer (not an update for automatic deployment),
 	// then DataWarriorLauncher.BASE_VERSION must also be changed to match this DATAWARRIOR_VERSION!
-	public static final String DATAWARRIOR_VERSION = "v05.09.00";	// format must be v00.00.00
+	public static final String DATAWARRIOR_VERSION = "v06.00.00";	// format must be v00.00.00
 
 	private static final String PREFERENCES_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	public static final String PREFERENCES_POST_INSTALL_INFO_FAILURE_MILLIS = "post_install_info_failure_time";
@@ -81,6 +80,8 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	private static final String PROPERTY_NEWS_IMAGE = "news_image_";
 	private static final String PROPERTY_NEWS_URL = "news_url_";
 	private static final String PROPERTY_NEWS_TYPE = "news_type_";
+
+	private static final char[] DIGITS = { '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
 	private static final long serialVersionUID = 20230822;
 //	private static final String BROKEN_FILE_NAME = "broken_datawarrior.jar";
@@ -189,7 +190,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 			String availableInstaller = sPostInstallInfo.getProperty(PROPERTY_MANUAL_UPDATE_VERSION);
 			if (availableInstaller != null
 			 && availableInstaller.matches("v\\d\\d\\.\\d\\d\\.\\d\\d")
-			 && availableInstaller.compareTo(DATAWARRIOR_VERSION) >= 0) {
+			 && availableInstaller.compareTo(DATAWARRIOR_VERSION) > 0) {
 				String url = prefs.get(PROPERTY_MANUAL_UPDATE_URL, "URL unexpectedly not available.");
 				String detail = prefs.get(PROPERTY_MANUAL_UPDATE_DETAIL, "Update detail information not available.");
 				SwingUtilities.invokeLater(() ->
@@ -331,12 +332,21 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			md.update(Files.readAllBytes(Paths.get(path)));
-			return DatatypeConverter.printHexBinary(md.digest());
+			return encodeHex(md.digest());
 			}
 		catch (Exception e) {
 			e.printStackTrace();
 			return "";
 			}
+		}
+
+	private static String encodeHex(final byte[] data) {
+		StringBuilder sb = new StringBuilder();
+		for (byte b:data) {
+			sb.append(DIGITS[(0xF0 & b) >>> 4]);
+			sb.append(DIGITS[0x0F & b]);
+			}
+		return sb.toString();
 		}
 
 	private static String getPostInstallInfo(final String url) {
