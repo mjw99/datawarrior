@@ -53,7 +53,6 @@ import java.util.*;
 import static com.actelion.research.table.view.VisualizationColor.cUseAsFilterColor;
 
 public class JVisualization2D extends JVisualization {
-	@Serial
 	private static final long serialVersionUID = 0x00000001;
 
 	private static final int cSimpleShapeCount = 7;
