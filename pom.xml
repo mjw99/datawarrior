@@ -404,6 +404,12 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven-compiler-plugin.version}</version>
+				<configuration>
+			        	<compilerArgs>
+			          		<arg>--add-exports</arg>
+			          		<arg>java.base/jdk.internal.module=ALL-UNNAMED</arg>
+			  		</compilerArgs>
+		  		</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
