@@ -33,7 +33,7 @@
 
 		<openchemlib.version>2024.1.2</openchemlib.version>
 		<fxmolviewer.version>0.0.1-SNAPSHOT</fxmolviewer.version>
-		<radiance.version>6.5.0</radiance.version>
+		<radiance.version>7.0.0</radiance.version>
 		<opsin.version>2.8.0</opsin.version>
 		<jna-inchi.version>1.2</jna-inchi.version>
 		<openjfx.version>19.0.2.1</openjfx.version>
