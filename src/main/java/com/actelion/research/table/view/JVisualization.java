@@ -767,7 +767,7 @@ public abstract class JVisualization extends JComponent
 							}
 						}
 	
-					if (vpList.isEmpty())
+					if (vpList.size() == 0)
 						break;
 	
 					shellList.add(vpList.toArray(new VisualizationNode[0]));
@@ -913,7 +913,7 @@ public abstract class JVisualization extends JComponent
 		if (mLocalExclusionList != -1)
 			msg = msg.concat("  List '"+mTableModel.getListHandler().getListName(mLocalExclusionList)+"' only!");
 
-		if (!msg.isEmpty()) {
+		if (msg.length() != 0) {
 			int fontSize = HiDPIHelper.scale(10);
 			g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, fontSize));
 			g.setColor(ColorHelper.getContrastColor(Color.red, getViewBackground()));
@@ -4120,7 +4120,7 @@ public abstract class JVisualization extends JComponent
 
 		addLabelTooltips(vp, columnSet, sb);
 
-		if (sb.isEmpty())
+		if (sb.length() == 0)
 			return null;
 
 		sb.append("</html>");
@@ -4171,7 +4171,7 @@ public abstract class JVisualization extends JComponent
 			   		}
 		   		}
 			if (value != null) {
-				sb.append((sb.isEmpty()) ? "<html>" : "<br>");
+				sb.append((sb.length() == 0) ? "<html>" : "<br>");
 		   		sb.append(title);
 		   		sb.append(value.length() > MAX_TOOLTIP_LENGTH ? value.substring(0, MAX_TOOLTIP_LENGTH)+"..." : value);
 				}
