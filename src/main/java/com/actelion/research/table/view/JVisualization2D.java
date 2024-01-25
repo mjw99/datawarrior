@@ -328,10 +328,21 @@ public class JVisualization2D extends JVisualization {
 					mG = mOffG;
 					paintContent(bounds, false);
 
-					if (mWarningMessage != null) {
+					if (mWarningMessage != null && width > HiDPIHelper.scale(100)) {
 						setColor(Color.RED);
 						setFontHeight(mFontHeight);
-						drawString(mWarningMessage, width/2 - getStringWidth(mWarningMessage)/2, mFontHeight);
+						String msg = mWarningMessage;
+						int y = mFontHeight;
+						while (!msg.isEmpty()) {
+							int index = msg.length();
+							while (getStringWidth(msg.substring(0, index)) > width) {
+								int lastSpaceIndex = msg.lastIndexOf(' ', index-1);
+								index = (lastSpaceIndex != -1) ? lastSpaceIndex : index-1;
+								}
+							drawString(msg.substring(0, index), 0, y);
+							msg = msg.substring(index < msg.length() && msg.charAt(index) == ' ' ? index + 1 : index);
+							y += mFontHeight;
+							}
 						}
 
 					if (mSkipPaintDetails) {
@@ -884,8 +895,8 @@ public class JVisualization2D extends JVisualization {
 				boolean drawLabels = false;
 				if (isVisible(vp)
 				 && (mChartType == cChartTypeScatterPlot
-				  || mTreeNodeList != null)
-				  || mChartInfo.paintMarker(vp)) {
+				  || mTreeNodeList != null
+				  || mChartInfo.paintMarker(vp))) {
 					vp.widthOrAngle1 = vp.heightOrAngle2 = (int)getMarkerSize(vp);
 					boolean inFocus = (focusFlagNo == -1 || vp.record.isFlagSet(focusFlagNo));
 
@@ -5150,9 +5161,10 @@ public class JVisualization2D extends JVisualization {
 		d.paint(mG);
 		}
 
-	protected void paintLegend(boolean transparentBG) {
+@Override
+protected void paintLegend(Rectangle bounds, boolean transparentBG) {
 		mG.setStroke(mThinLineStroke);
-		super.paintLegend(mBoundsWithoutLegend, transparentBG);
+		super.paintLegend(bounds, transparentBG);
 		}
 
 	@Override
