@@ -75,7 +75,6 @@
     <mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
     <buildDirectory>${project.basedir}/target</buildDirectory>
     <jpackageInputDir>${buildDirectory}/jpackage_inputdir</jpackageInputDir>
-    <jpackageOutputDir>${buildDirectory}/jpackage_outputdir</jpackageOutputDir>
     <jpackageJreDir>${buildDirectory}/jpackage</jpackageJreDir>
     <jpackageJreDirLinux>${jpackageJreDir}/linux</jpackageJreDirLinux>
     <jpackageJdkDirLinux>${jpackageJreDir}/jdk-linux</jpackageJdkDirLinux>
@@ -291,7 +290,7 @@
         <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT-shaded.jar</mainjar>
         <mainclass>${mainClass}</mainclass>
         <name>${fn}</name>
-        <dest>${jpackageOutputDir}</dest>
+        <dest>${buildDirectory}</dest>
     </configuration>
     <executions>
         <execution>
