@@ -67,7 +67,6 @@
 		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
 		<maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
 		<maven-clean-plugin.version>3.3.2</maven-clean-plugin.version>
-		<maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
 		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
 		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
 
@@ -283,8 +282,8 @@
     <version>0.1.5</version>
     <configuration>
         <appversion>${project.version}</appversion>
-        <input>${buildDirectory}</input>
-        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT-shaded.jar</mainjar>
+	<input>${buildDirectory}/libs</input>
+        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT.jar</mainjar>
         <mainclass>${mainClass}</mainclass>
         <name>${fn}</name>
         <dest>${buildDirectory}</dest>
@@ -350,46 +349,27 @@
 				</dependencies>
 			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>${maven-shade-plugin.version}</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<transformers>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<!-- This should be 
-										org.openmolecules.datawarrior.launcher.DataWarriorLauncher 
-									but the logic is broken; it expects hardcorded jar file locations -->
-									<mainClass>
-										com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
-								</transformer>
-							</transformers>
+                       <plugin>
+                               <groupId>org.apache.maven.plugins</groupId>
+                               <artifactId>maven-dependency-plugin</artifactId>
+                               <version>${maven-dependency-plugin.version}</version>
+                               <executions>
+                                       <execution>
+                                               <id>copy-dependencies</id>
+                                               <phase>prepare-package</phase>
+                                               <goals>
+                                                       <goal>copy-dependencies</goal>
+                                               </goals>
+                                               <configuration>
+                                                       <outputDirectory>
+                                                               ${project.build.directory}/libs
+                                                       </outputDirectory>
+                                               </configuration>
+                                       </execution>
+                               </executions>
+                       </plugin>
 
-							<filters>
-								<filter>
-									<!-- filter out signature files from signed
-									dependencies, else repackaging 
-										fails with security ex -->
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-									</excludes>
-								</filter>
-							</filters>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+
 			<plugin>
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>${maven-clean-plugin.version}</version>
