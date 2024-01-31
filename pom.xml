@@ -61,13 +61,13 @@
                      mvn versions:display-plugin-updates
 
                 to check for updates for these below -->
-		<maven-dependency-plugin.version>3.6.0</maven-dependency-plugin.version>
-		<maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
-		<maven-surefire-plugin.version>3.0.0</maven-surefire-plugin.version>
+		<maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
+		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
 		<maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-		<maven-clean-plugin.version>3.2.0</maven-clean-plugin.version>
-		<maven-shade-plugin.version>3.5.0</maven-shade-plugin.version>
-		<maven-enforcer-plugin.version>3.3.0</maven-enforcer-plugin.version>
+		<maven-clean-plugin.version>3.3.2</maven-clean-plugin.version>
+		<maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
+		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
 		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
 	</properties>
 
