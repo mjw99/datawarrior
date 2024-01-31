@@ -69,6 +69,15 @@
 		<maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
 		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
 		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
+
+    <fn>datawarrior</fn>
+    <mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
+    <buildDirectory>${project.basedir}/target</buildDirectory>
+    <jpackageInputDir>${buildDirectory}/jpackage_inputdir</jpackageInputDir>
+    <jpackageOutputDir>${buildDirectory}/jpackage_outputdir</jpackageOutputDir>
+    <jpackageJreDir>${buildDirectory}/jpackage</jpackageJreDir>
+    <jpackageJreDirLinux>${jpackageJreDir}/linux</jpackageJreDirLinux>
+    <jpackageJdkDirLinux>${jpackageJreDir}/jdk-linux</jpackageJdkDirLinux>
 	</properties>
 
 	<dependencies>
@@ -270,6 +279,38 @@
 
 	<build>
 		<plugins>
+
+<plugin>
+    <groupId>com.github.akman</groupId>
+    <artifactId>jpackage-maven-plugin</artifactId>
+    <version>0.1.5</version>
+    <configuration>
+        <appversion>${project.version}</appversion>
+        <input>${jpackageInputDir}</input>
+        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT.jar</mainjar>
+        <mainclass>${mainClass}</mainclass>
+        <name>${fn}</name>
+        <dest>${jpackageOutputDir}</dest>
+    </configuration>
+    <executions>
+        <execution>
+            <id>jpackagedeblinux</id>
+            <phase>package</phase>
+            <goals>
+                <goal>jpackage</goal>
+            </goals>
+            <configuration>
+                <linuxshortcut>true</linuxshortcut>
+                <type>DEB</type>
+                <toolhome>${jpackageJdkDirLinux}</toolhome>
+                <runtimeimage>${jpackageJreDirLinux}</runtimeimage>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+
+
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
