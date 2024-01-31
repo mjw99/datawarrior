@@ -70,10 +70,6 @@
 		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
 		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
 
-    <fn>datawarrior</fn>
-    <mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
-    <buildDirectory>${project.basedir}/target</buildDirectory>
-    <jpackageJreDir>${buildDirectory}/jpackage</jpackageJreDir>
 	</properties>
 
 	<dependencies>
@@ -281,12 +277,12 @@
     <artifactId>jpackage-maven-plugin</artifactId>
     <version>0.1.5</version>
     <configuration>
+        <name>${project.name}</name>
         <appversion>${project.version}</appversion>
-	<input>${buildDirectory}/libs</input>
-        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT.jar</mainjar>
-        <mainclass>${mainClass}</mainclass>
-        <name>${fn}</name>
-        <dest>${buildDirectory}</dest>
+        <mainjar>${project.basedir}/target/datawarrior-${project.version}.jar</mainjar>
+        <mainclass>com.actelion.research.datawarrior.DataWarriorLinux</mainclass>
+        <input>${project.basedir}/target/libs</input>
+        <dest>${project.basedir}/target</dest>
     </configuration>
     <executions>
         <execution>
