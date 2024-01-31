@@ -279,10 +279,10 @@
     <configuration>
         <name>${project.name}</name>
         <appversion>${project.version}</appversion>
-        <mainjar>${project.basedir}/target/datawarrior-${project.version}.jar</mainjar>
+	<mainjar>${project.build.directory}/datawarrior-${project.version}.jar</mainjar>
         <mainclass>com.actelion.research.datawarrior.DataWarriorLinux</mainclass>
-        <input>${project.basedir}/target/libs</input>
-        <dest>${project.basedir}/target</dest>
+	<input>${project.build.directory}/libs</input>
+	<dest>${project.build.directory}</dest>
     </configuration>
     <executions>
         <execution>
