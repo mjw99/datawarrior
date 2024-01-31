@@ -284,18 +284,6 @@
 	<input>${project.build.directory}/libs</input>
 	<dest>${project.build.directory}</dest>
     </configuration>
-    <executions>
-        <execution>
-            <id>jpackagedeblinux</id>
-            <goals>
-                <goal>jpackage</goal>
-            </goals>
-            <configuration>
-                <linuxshortcut>true</linuxshortcut>
-                <type>DEB</type>
-            </configuration>
-        </execution>
-    </executions>
 </plugin>
 
 
