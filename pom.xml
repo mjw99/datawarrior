@@ -8,6 +8,7 @@
 	<groupId>com.actelion.research.datawarrior</groupId>
 	<artifactId>datawarrior</artifactId>
 	<version>6.2.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
 
 	<name>datawarrior</name>
 	<url>https://github.com/thsa/datawarrior</url>
@@ -287,7 +288,7 @@
     <configuration>
         <appversion>${project.version}</appversion>
         <input>${jpackageInputDir}</input>
-        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT.jar</mainjar>
+        <mainjar>${buildDirectory}/datawarrior-6.2.0-SNAPSHOT-shaded.jar</mainjar>
         <mainclass>${mainClass}</mainclass>
         <name>${fn}</name>
         <dest>${jpackageOutputDir}</dest>
@@ -295,7 +296,6 @@
     <executions>
         <execution>
             <id>jpackagedeblinux</id>
-            <phase>package</phase>
             <goals>
                 <goal>jpackage</goal>
             </goals>
