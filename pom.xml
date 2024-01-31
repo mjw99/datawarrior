@@ -272,16 +272,16 @@
 		<plugins>
 
 <plugin>
-    <groupId>com.github.akman</groupId>
+    <groupId>org.panteleyev</groupId>
     <artifactId>jpackage-maven-plugin</artifactId>
-    <version>0.1.5</version>
+    <version>1.6.0</version>
     <configuration>
         <name>${project.name}</name>
-        <appversion>${project.version}</appversion>
-	<mainjar>${project.build.directory}/datawarrior-${project.version}.jar</mainjar>
-        <mainclass>com.actelion.research.datawarrior.DataWarriorLinux</mainclass>
-	<input>${project.build.directory}/libs</input>
-	<dest>${project.build.directory}</dest>
+        <appVersion>${project.version}</appVersion>
+        <mainJar>${project.build.directory}/datawarrior-${project.version}.jar</mainJar>
+        <mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
+        <input>${project.build.directory}/libs</input>
+        <destination>${project.build.directory}</destination>
      </configuration>
      <executions>
               <execution>
