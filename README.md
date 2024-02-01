@@ -26,8 +26,10 @@ The most important ones are:
 ### How to download the project
 git clone https://github.com/thsa/datawarrior.git
 
-### How to build the project via Maven
+### How to build the project via Maven on a Debian like system
 ```
+sudo apt-get install openjdk-17 maven bintuils fakeroot
+
 git clone https://github.com/thsa/fxmolviewer.git
 cd fxmolviewer
 mvn clean install "-DreleaseVersion=0.0.1-SNAPSHOT"
@@ -36,11 +38,13 @@ cd ..
 git clone https://github.com/mjw99/datawarrior
 cd datawarrior
 mvn clean package
+
+sudo dpkg -i ./target/datawarrior*.deb
 ```
 
 ### How to run the project
 ```
-java -jar ./target/datawarrior-*-SNAPSHOT-shaded.jar
+/opt/datawarrior/bin/datawarrior
 ```
 
 ### Platform Integration
