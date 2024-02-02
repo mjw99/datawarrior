@@ -174,23 +174,23 @@
 			<version>${json.version}</version>
 		</dependency>
 
-                <dependency>
-                        <groupId>org.pushing-pixels</groupId>
-                        <artifactId>radiance-common</artifactId>
-                        <version>${radiance.version}</version>
-                </dependency>
+		<dependency>
+			<groupId>org.pushing-pixels</groupId>
+			<artifactId>radiance-common</artifactId>
+			<version>${radiance.version}</version>
+		</dependency>
 
-                <dependency>
-                        <groupId>org.pushing-pixels</groupId>
-                        <artifactId>radiance-theming</artifactId>
-                        <version>${radiance.version}</version>
-                </dependency>
+		<dependency>
+			<groupId>org.pushing-pixels</groupId>
+			<artifactId>radiance-theming</artifactId>
+			<version>${radiance.version}</version>
+		</dependency>
 
-                <dependency>
-                        <groupId>org.pushing-pixels</groupId>
-                        <artifactId>radiance-swing-ktx</artifactId>
-                        <version>${radiance.version}</version>
-                </dependency>
+		<dependency>
+			<groupId>org.pushing-pixels</groupId>
+			<artifactId>radiance-swing-ktx</artifactId>
+			<version>${radiance.version}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>io.github.dan2097</groupId>
@@ -269,90 +269,91 @@
 	</dependencies>
 
 
-<profiles>
-    <profile>
-        <id>windows</id>
-        <activation>
-            <os>
-                <family>windows</family>
-            </os>
-        </activation>
-        <properties>
-			<my.property>running.on.windows</my.property>
-        </properties>
-    </profile>
-    <profile>
-        <id>mac</id>
-        <activation>
-            <os>
-                <family>mac</family>
-            </os>
-        </activation>
-        <properties>
-			<my.property>running.on.mac</my.property>
-        </properties>
-    </profile>
-    <profile>
-        <id>linux</id>
-        <activation>
-            <os>
-                <name>Linux</name>
-            </os>
-        </activation>
-        <properties>
-			<my.property>running.on.linux</my.property>
-        </properties>
-    </profile>
-</profiles>
+	<profiles>
+		<profile>
+			<id>windows</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<my.property>running.on.windows</my.property>
+			</properties>
+		</profile>
+		<profile>
+			<id>mac</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<my.property>running.on.mac</my.property>
+			</properties>
+		</profile>
+		<profile>
+			<id>linux</id>
+			<activation>
+				<os>
+					<name>Linux</name>
+				</os>
+			</activation>
+			<properties>
+				<my.property>running.on.linux</my.property>
+			</properties>
+		</profile>
+	</profiles>
 
 
 	<build>
 		<plugins>
 
-<plugin>
-    <groupId>org.panteleyev</groupId>
-    <artifactId>jpackage-maven-plugin</artifactId>
-    <version>1.6.0</version>
-    <configuration>
-        <name>${project.name}</name>
-        <appVersion>${project.version}</appVersion>
-        <mainJar>${project.build.directory}/datawarrior-${project.version}.jar</mainJar>
-        <mainClass>com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
-        <input>${project.build.directory}/libs</input>
-        <destination>${project.build.directory}</destination>
-     </configuration>
-     <executions>
-              <execution>
-                <id>jpackage-installer</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>jpackage</goal>
-                </goals>
-	</execution>
+			<plugin>
+				<groupId>org.panteleyev</groupId>
+				<artifactId>jpackage-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<configuration>
+					<name>${project.name}</name>
+					<appVersion>${project.version}</appVersion>
+					<mainJar>
+						${project.build.directory}/datawarrior-${project.version}.jar</mainJar>
+					<mainClass>
+						com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
+					<input>${project.build.directory}/libs</input>
+					<destination>${project.build.directory}</destination>
+				</configuration>
+				<executions>
+					<execution>
+						<id>jpackage-installer</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jpackage</goal>
+						</goals>
+					</execution>
 
-        <execution>
-            <id>linux</id>
-            <configuration>
-            </configuration>
-    </execution>
+					<execution>
+						<id>linux</id>
+						<configuration>
+						</configuration>
+					</execution>
 
 
-        <execution>
-            <id>mac</id>
-            <configuration>
-            </configuration>
-    </execution>
+					<execution>
+						<id>mac</id>
+						<configuration>
+						</configuration>
+					</execution>
 
-        <execution>
-            <id>win</id>
-            <configuration>
-                <winMenu>true</winMenu>
-            </configuration>
-    </execution>
+					<execution>
+						<id>win</id>
+						<configuration>
+							<winMenu>true</winMenu>
+						</configuration>
+					</execution>
 
-     </executions>
-</plugin>
-
+				</executions>
+			</plugin>
 
 
 			<plugin>
@@ -390,21 +391,21 @@
 						</configuration>
 					</execution>
 
-                <execution>
-                    <id>enforce-os-profile</id>
-                    <goals>
-                        <goal>enforce</goal>
-                    </goals>
-                    <configuration>
-                        <rules>
-                            <requireActiveProfile>
-                                <profiles>windows,mac,linux</profiles>
-                                <all>false</all>
-                            </requireActiveProfile>
-                        </rules>
-                        <fail>true</fail>
-                    </configuration>
-                </execution>
+					<execution>
+						<id>enforce-os-profile</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireActiveProfile>
+									<profiles>windows,mac,linux</profiles>
+									<all>false</all>
+								</requireActiveProfile>
+							</rules>
+							<fail>true</fail>
+						</configuration>
+					</execution>
 
 				</executions>
 				<dependencies>
@@ -416,25 +417,25 @@
 				</dependencies>
 			</plugin>
 
-                       <plugin>
-                               <groupId>org.apache.maven.plugins</groupId>
-                               <artifactId>maven-dependency-plugin</artifactId>
-                               <version>${maven-dependency-plugin.version}</version>
-                               <executions>
-                                       <execution>
-                                               <id>copy-dependencies</id>
-                                               <phase>prepare-package</phase>
-                                               <goals>
-                                                       <goal>copy-dependencies</goal>
-                                               </goals>
-                                               <configuration>
-                                                       <outputDirectory>
-                                                               ${project.build.directory}/libs
-                                                       </outputDirectory>
-                                               </configuration>
-                                       </execution>
-                               </executions>
-                       </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>${maven-dependency-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>
+								${project.build.directory}/libs
+							</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
 
 			<plugin>
@@ -449,11 +450,11 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven-compiler-plugin.version}</version>
 				<configuration>
-			        	<compilerArgs>
-			          		<arg>--add-exports</arg>
-			          		<arg>java.base/jdk.internal.module=ALL-UNNAMED</arg>
-			  		</compilerArgs>
-		  		</configuration>
+					<compilerArgs>
+						<arg>--add-exports</arg>
+						<arg>java.base/jdk.internal.module=ALL-UNNAMED</arg>
+					</compilerArgs>
+				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
