@@ -268,6 +268,44 @@
 
 	</dependencies>
 
+
+<profiles>
+    <profile>
+        <id>windows</id>
+        <activation>
+            <os>
+                <family>windows</family>
+            </os>
+        </activation>
+        <properties>
+			<my.property>running.on.windows</my.property>
+        </properties>
+    </profile>
+    <profile>
+        <id>mac</id>
+        <activation>
+            <os>
+                <family>mac</family>
+            </os>
+        </activation>
+        <properties>
+			<my.property>running.on.mac</my.property>
+        </properties>
+    </profile>
+    <profile>
+        <id>linux</id>
+        <activation>
+            <os>
+                <name>Linux</name>
+            </os>
+        </activation>
+        <properties>
+			<my.property>running.on.linux</my.property>
+        </properties>
+    </profile>
+</profiles>
+
+
 	<build>
 		<plugins>
 
@@ -290,7 +328,28 @@
                 <goals>
                   <goal>jpackage</goal>
                 </goals>
-              </execution>
+	</execution>
+
+        <execution>
+            <id>linux</id>
+            <configuration>
+            </configuration>
+    </execution>
+
+
+        <execution>
+            <id>mac</id>
+            <configuration>
+            </configuration>
+    </execution>
+
+        <execution>
+            <id>win</id>
+            <configuration>
+                <winMenu>true</winMenu>
+            </configuration>
+    </execution>
+
      </executions>
 </plugin>
 
@@ -330,6 +389,22 @@
 							</rules>
 						</configuration>
 					</execution>
+
+                <execution>
+                    <id>enforce-os-profile</id>
+                    <goals>
+                        <goal>enforce</goal>
+                    </goals>
+                    <configuration>
+                        <rules>
+                            <requireActiveProfile>
+                                <profiles>windows,mac,linux</profiles>
+                                <all>false</all>
+                            </requireActiveProfile>
+                        </rules>
+                        <fail>true</fail>
+                    </configuration>
+                </execution>
 
 				</executions>
 				<dependencies>
