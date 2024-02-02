@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="https://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -277,9 +277,20 @@
 					<family>windows</family>
 				</os>
 			</activation>
-			<properties>
-				<my.property>running.on.windows</my.property>
-			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.panteleyev</groupId>
+						<artifactId>jpackage-maven-plugin</artifactId>
+						<version>1.6.0</version>
+
+						<configuration>
+							<winMenu>true</winMenu>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+
 		</profile>
 		<profile>
 			<id>mac</id>
@@ -288,9 +299,6 @@
 					<family>mac</family>
 				</os>
 			</activation>
-			<properties>
-				<my.property>running.on.mac</my.property>
-			</properties>
 		</profile>
 		<profile>
 			<id>linux</id>
@@ -299,9 +307,6 @@
 					<name>Linux</name>
 				</os>
 			</activation>
-			<properties>
-				<my.property>running.on.linux</my.property>
-			</properties>
 		</profile>
 	</profiles>
 
@@ -323,6 +328,7 @@
 					<input>${project.build.directory}/libs</input>
 					<destination>${project.build.directory}</destination>
 				</configuration>
+
 				<executions>
 					<execution>
 						<id>jpackage-installer</id>
@@ -331,28 +337,8 @@
 							<goal>jpackage</goal>
 						</goals>
 					</execution>
-
-					<execution>
-						<id>linux</id>
-						<configuration>
-						</configuration>
-					</execution>
-
-
-					<execution>
-						<id>mac</id>
-						<configuration>
-						</configuration>
-					</execution>
-
-					<execution>
-						<id>win</id>
-						<configuration>
-							<winMenu>true</winMenu>
-						</configuration>
-					</execution>
-
 				</executions>
+
 			</plugin>
 
 
