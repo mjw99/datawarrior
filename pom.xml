@@ -68,6 +68,7 @@
 		<maven-clean-plugin.version>3.3.2</maven-clean-plugin.version>
 		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
 		<extra-enforcer-rules.version>1.7.0</extra-enforcer-rules.version>
+		<jpackage-maven-plugin.version>1.6.0</jpackage-maven-plugin.version>
 
 	</properties>
 
@@ -269,6 +270,7 @@
 	</dependencies>
 
 
+	<!-- Profiles to control platform specific package builds -->
 	<profiles>
 		<profile>
 			<id>windows</id>
@@ -282,10 +284,12 @@
 					<plugin>
 						<groupId>org.panteleyev</groupId>
 						<artifactId>jpackage-maven-plugin</artifactId>
-						<version>1.6.0</version>
+						<version>${jpackage-maven-plugin.version}</version>
 
 						<configuration>
 							<winMenu>true</winMenu>
+							<!-- temp hack since Wix does not like SNAPSHOT suffix -->
+							<appVersion>6.2.0</appVersion>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -317,7 +321,7 @@
 			<plugin>
 				<groupId>org.panteleyev</groupId>
 				<artifactId>jpackage-maven-plugin</artifactId>
-				<version>1.6.0</version>
+				<version>${jpackage-maven-plugin.version}</version>
 				<configuration>
 					<name>${project.name}</name>
 					<appVersion>${project.version}</appVersion>
