@@ -31,4 +31,5 @@ jobs:
         with:
           name: output-binary
           path: target/dist/*
+          overwrite: true
           retention-days: 5
