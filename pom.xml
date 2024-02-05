@@ -61,6 +61,7 @@
                      mvn versions:display-plugin-updates
 
                 to check for updates for these below -->
+		<maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
 		<maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
 		<maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
 		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
@@ -334,6 +335,15 @@
 	<build>
 		<plugins>
 
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-jar-plugin</artifactId>
+      <version>${maven-jar-plugin.version}</version>
+      <configuration>
+        <outputDirectory>${project.build.directory}/libs</outputDirectory>
+      </configuration>
+    </plugin>
+
 			<plugin>
 				<groupId>org.panteleyev</groupId>
 				<artifactId>jpackage-maven-plugin</artifactId>
@@ -341,11 +351,10 @@
 				<configuration>
 					<name>${project.name}</name>
 					<appVersion>${project.version}</appVersion>
-					<mainJar>
-						${project.build.directory}/datawarrior-${project.version}.jar</mainJar>
+					<input>${project.build.directory}/libs</input>
+					<mainJar>datawarrior-${project.version}.jar</mainJar>
 					<mainClass>
 						com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
-					<input>${project.build.directory}/libs</input>
 					<destination>${project.build.directory}/dist</destination>
 				</configuration>
 
