@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         # test against latest update of each major Java version:
-        java: [17, 21]
+        java: [17]
         os: [ubuntu-22.04, windows-latest, macos-latest]
     name: Java ${{ matrix.java }} on ${{ matrix.os }}
     steps:
@@ -26,3 +26,9 @@ jobs:
         run: git clone https://github.com/thsa/fxmolviewer/ && cd fxmolviewer && mvn -B clean install "-DreleaseVersion=0.0.1-SNAPSHOT" && cd ..
       - name: Build with Maven
         run: mvn -B package
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-binary
+          path: target/dist/*
+          retention-days: 5
