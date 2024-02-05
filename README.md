@@ -39,7 +39,7 @@ git clone https://github.com/mjw99/datawarrior
 cd datawarrior
 mvn clean package
 
-sudo dpkg -i ./target/datawarrior*.deb
+sudo dpkg -i ./target/dist/datawarrior*.deb
 /opt/datawarrior/bin/datawarrior
 ```
 ### How to build the project via Maven on a Windows System
@@ -56,7 +56,7 @@ git clone https://github.com/mjw99/datawarrior
 cd datawarrior
 mvn clean package
 ```
-7) Run the installer that is created in the target directory
+7) Run the installer that is created in the target/dist directory
 
 
 ### Platform Integration

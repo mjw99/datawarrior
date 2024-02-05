@@ -330,7 +330,7 @@
 					<mainClass>
 						com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
 					<input>${project.build.directory}/libs</input>
-					<destination>${project.build.directory}</destination>
+					<destination>${project.build.directory}/dist</destination>
 				</configuration>
 
 				<executions>
