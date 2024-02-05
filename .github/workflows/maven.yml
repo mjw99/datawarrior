@@ -27,7 +27,8 @@ jobs:
       - name: Build with Maven
         run: mvn -B package
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: binary-${{ matrix.os }}-${{ matrix.version }}
           path: target/dist/*
           retention-days: 5
