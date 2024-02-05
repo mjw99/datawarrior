@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         java: [17]
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        os: [ubuntu-22.04, windows-2022, macos-latest]
     name: Java ${{ matrix.java }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
