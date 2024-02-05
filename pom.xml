@@ -311,7 +311,9 @@
                                                 <artifactId>jpackage-maven-plugin</artifactId>
                                                 <version>${jpackage-maven-plugin.version}</version>
 
-                                                <configuration>
+						<configuration>
+                                                        <!-- temp hack since Mac DMG Package does not like SNAPSHOT suffix -->
+                                                        <appVersion>6.2.0</appVersion>
                                                         <destination>${project.build.directory}/dist/mac</destination>
                                                 </configuration>
                                         </plugin>
