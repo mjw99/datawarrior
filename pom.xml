@@ -290,6 +290,7 @@
 							<winMenu>true</winMenu>
 							<!-- temp hack since Wix does not like SNAPSHOT suffix -->
 							<appVersion>6.2.0</appVersion>
+							<destination>${project.build.directory}/dist/win</destination>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -303,6 +304,20 @@
 					<family>mac</family>
 				</os>
 			</activation>
+                        <build>
+                                <plugins>
+                                        <plugin>
+                                                <groupId>org.panteleyev</groupId>
+                                                <artifactId>jpackage-maven-plugin</artifactId>
+                                                <version>${jpackage-maven-plugin.version}</version>
+
+                                                <configuration>
+                                                        <destination>${project.build.directory}/dist/mac</destination>
+                                                </configuration>
+                                        </plugin>
+                                </plugins>
+                        </build>
+
 		</profile>
 		<profile>
 			<id>linux</id>
@@ -311,6 +326,20 @@
 					<name>Linux</name>
 				</os>
 			</activation>
+                        <build>
+                                <plugins>
+                                        <plugin>
+                                                <groupId>org.panteleyev</groupId>
+                                                <artifactId>jpackage-maven-plugin</artifactId>
+                                                <version>${jpackage-maven-plugin.version}</version>
+
+                                                <configuration>
+                                                        <destination>${project.build.directory}/dist/linux</destination>
+                                                </configuration>
+                                        </plugin>
+                                </plugins>
+                        </build>
+
 		</profile>
 	</profiles>
 
@@ -330,7 +359,6 @@
 					<mainClass>
 						com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
 					<input>${project.build.directory}/libs</input>
-					<destination>${project.build.directory}/dist</destination>
 				</configuration>
 
 				<executions>
