@@ -40,12 +40,24 @@ cd datawarrior
 mvn clean package
 
 sudo dpkg -i ./target/datawarrior*.deb
-```
-
-### How to run the project
-```
 /opt/datawarrior/bin/datawarrior
 ```
+### How to build the project via Maven on a Windows System
+1) Install JDK >= 17 
+2) Install Maven and ensure it is in your PATH
+3) Download wix311-binaries.zip from WiX Toolset v3 releases  
+(https://github.com/wixtoolset/wix3/releases) 
+4) Unpack the archive into wix3 folder 
+5) Add the wix3 folder to PATH environment variable
+
+6) Clone and build the repo
+```
+git clone https://github.com/mjw99/datawarrior
+cd datawarrior
+mvn clean package
+```
+7) Run the installer that is created in the target directory
+
 
 ### Platform Integration
 Ideally, *DataWarrior* should be installed in a platform specific way that registers its file
