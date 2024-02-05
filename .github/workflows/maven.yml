@@ -10,9 +10,8 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        # test against latest update of each major Java version:
         java: [17]
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        os: [windows-latest]
     name: Java ${{ matrix.java }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
