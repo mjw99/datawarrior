@@ -312,7 +312,8 @@
 
 						<configuration>
                                                         <!-- temp hack since Mac DMG Package does not like SNAPSHOT suffix -->
-                                                        <appVersion>6.2.0</appVersion>
+							<appVersion>6.2.0</appVersion>
+							<mainClass>com.actelion.research.datawarrior.DataWarriorOSX</mainClass>
                                                 </configuration>
                                         </plugin>
                                 </plugins>
