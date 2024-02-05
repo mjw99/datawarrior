@@ -12,8 +12,8 @@ jobs:
       matrix:
         # test against latest update of each major Java version:
         java: [17, 21]
-        os: [ubuntu-20.04, windows-latest, macos-latest]
-    name: Java ${{ matrix.java }}
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    name: Java ${{ matrix.java }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup java
