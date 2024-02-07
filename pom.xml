@@ -328,6 +328,28 @@
 					<name>Linux</name>
 				</os>
 			</activation>
+
+                        <build>
+                                <plugins>
+                                        <plugin>
+                                                <groupId>org.panteleyev</groupId>
+                                                <artifactId>jpackage-maven-plugin</artifactId>
+                                                <version>${jpackage-maven-plugin.version}</version>
+
+						<configuration>
+							<fileAssociations>
+								<fileAssociation>src/main/resources/jpackage/dwar.properties</fileAssociation>
+								<fileAssociation>src/main/resources/jpackage/dwat.properties</fileAssociation>
+								<fileAssociation>src/main/resources/jpackage/dwaq.properties</fileAssociation>
+								<fileAssociation>src/main/resources/jpackage/dwas.properties</fileAssociation>
+								<fileAssociation>src/main/resources/jpackage/dwam.properties</fileAssociation>
+								<fileAssociation>src/main/resources/jpackage/sdf.properties</fileAssociation>
+							</fileAssociations>
+                                                </configuration>
+                                        </plugin>
+                                </plugins>
+                        </build>
+
 		</profile>
 	</profiles>
 
