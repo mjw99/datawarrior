@@ -289,7 +289,8 @@
 
 						<configuration>
 							<winMenu>true</winMenu>
-							<!-- temp hack since Wix does not like SNAPSHOT suffix -->
+							<!-- temp hack since Wix does not like SNAPSHOT
+							suffix -->
 							<appVersion>6.2.0</appVersion>
 						</configuration>
 					</plugin>
@@ -304,21 +305,23 @@
 					<family>mac</family>
 				</os>
 			</activation>
-                        <build>
-                                <plugins>
-                                        <plugin>
-                                                <groupId>org.panteleyev</groupId>
-                                                <artifactId>jpackage-maven-plugin</artifactId>
-                                                <version>${jpackage-maven-plugin.version}</version>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.panteleyev</groupId>
+						<artifactId>jpackage-maven-plugin</artifactId>
+						<version>${jpackage-maven-plugin.version}</version>
 
 						<configuration>
-                                                        <!-- temp hack since Mac DMG Package does not like SNAPSHOT suffix -->
+							<!-- temp hack since Mac DMG Package does not like
+							SNAPSHOT suffix -->
 							<appVersion>6.2.0</appVersion>
-							<mainClass>com.actelion.research.datawarrior.DataWarriorOSX</mainClass>
-                                                </configuration>
-                                        </plugin>
-                                </plugins>
-                        </build>
+							<mainClass>
+								com.actelion.research.datawarrior.DataWarriorOSX</mainClass>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
 
 		</profile>
 		<profile>
@@ -329,26 +332,15 @@
 				</os>
 			</activation>
 
-                        <build>
-                                <plugins>
-                                        <plugin>
-                                                <groupId>org.panteleyev</groupId>
-                                                <artifactId>jpackage-maven-plugin</artifactId>
-                                                <version>${jpackage-maven-plugin.version}</version>
-
-						<configuration>
-							<fileAssociations>
-								<fileAssociation>src/main/resources/jpackage/dwar.properties</fileAssociation>
-								<fileAssociation>src/main/resources/jpackage/dwat.properties</fileAssociation>
-								<fileAssociation>src/main/resources/jpackage/dwaq.properties</fileAssociation>
-								<fileAssociation>src/main/resources/jpackage/dwas.properties</fileAssociation>
-								<fileAssociation>src/main/resources/jpackage/dwam.properties</fileAssociation>
-								<fileAssociation>src/main/resources/jpackage/sdf.properties</fileAssociation>
-							</fileAssociations>
-                                                </configuration>
-                                        </plugin>
-                                </plugins>
-                        </build>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.panteleyev</groupId>
+						<artifactId>jpackage-maven-plugin</artifactId>
+						<version>${jpackage-maven-plugin.version}</version>
+					</plugin>
+				</plugins>
+			</build>
 
 		</profile>
 	</profiles>
@@ -357,14 +349,14 @@
 	<build>
 		<plugins>
 
-    <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-jar-plugin</artifactId>
-      <version>${maven-jar-plugin.version}</version>
-      <configuration>
-        <outputDirectory>${project.build.directory}/libs</outputDirectory>
-      </configuration>
-    </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>${maven-jar-plugin.version}</version>
+				<configuration>
+					<outputDirectory>${project.build.directory}/libs</outputDirectory>
+				</configuration>
+			</plugin>
 
 			<plugin>
 				<groupId>org.panteleyev</groupId>
@@ -378,6 +370,20 @@
 					<mainClass>
 						com.actelion.research.datawarrior.DataWarriorLinux</mainClass>
 					<destination>${project.build.directory}/dist</destination>
+					<fileAssociations>
+						<fileAssociation>
+							src/main/resources/jpackage/dwar.properties</fileAssociation>
+						<fileAssociation>
+							src/main/resources/jpackage/dwat.properties</fileAssociation>
+						<fileAssociation>
+							src/main/resources/jpackage/dwaq.properties</fileAssociation>
+						<fileAssociation>
+							src/main/resources/jpackage/dwas.properties</fileAssociation>
+						<fileAssociation>
+							src/main/resources/jpackage/dwam.properties</fileAssociation>
+						<fileAssociation>
+							src/main/resources/jpackage/sdf.properties</fileAssociation>
+					</fileAssociations>
 				</configuration>
 
 				<executions>
