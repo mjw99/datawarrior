@@ -1,4 +1,4 @@
-## DataWarrior
+## DataWarrior (Mavenised fork)
 *DataWarrior* is a program for interactive data analysis and visualization. While it is
 widely used by data analysts in general, it is particular useful for cheminformaticians,
 because chemical structures and reactions are native datatypes and because of its rich
@@ -23,10 +23,8 @@ The most important ones are:
 * Substance Look&Feel: professionally designed user interface skin
 * Java Expression Parser: for calculating new column data using custom equations
 
-### How to download the project
-git clone https://github.com/thsa/datawarrior.git
-
 ### How to build the project via Maven on a Debian like system
+=======
 ```
 sudo apt-get install openjdk-17 maven bintuils fakeroot
 
