@@ -292,6 +292,7 @@
 							<!-- temp hack since Wix does not like SNAPSHOT
 							suffix -->
 							<appVersion>6.2.0</appVersion>
+                                                        <icon>./src/main/resources/jpackage/win/datawarrior.png</icon>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -317,7 +318,8 @@
 							SNAPSHOT suffix -->
 							<appVersion>6.2.0</appVersion>
 							<mainClass>
-								com.actelion.research.datawarrior.DataWarriorOSX</mainClass>
+									com.actelion.research.datawarrior.DataWarriorOSX</mainClass>
+							<icon>./src/main/resources/jpackage/mac/datawarrior.icns</icon>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -338,6 +340,9 @@
 						<groupId>org.panteleyev</groupId>
 						<artifactId>jpackage-maven-plugin</artifactId>
 						<version>${jpackage-maven-plugin.version}</version>
+						<configuration>
+                                                        <icon>./src/main/resources/jpackage/linux/datawarrior.png</icon>
+                                                </configuration>
 					</plugin>
 				</plugins>
 			</build>
