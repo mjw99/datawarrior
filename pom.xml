@@ -292,7 +292,7 @@
 							<!-- temp hack since Wix does not like SNAPSHOT
 							suffix -->
 							<appVersion>6.2.0</appVersion>
-                                                        <icon>./src/main/resources/jpackage/win/datawarrior.png</icon>
+                                                        <icon>./src/main/resources/jpackage/win/datawarrior.ico</icon>
 						</configuration>
 					</plugin>
 				</plugins>
