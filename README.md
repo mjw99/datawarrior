@@ -24,7 +24,6 @@ The most important ones are:
 * Java Expression Parser: for calculating new column data using custom equations
 
 ### How to build the project via Maven on a Debian like system
-=======
 ```
 sudo apt-get install openjdk-17 maven bintuils fakeroot
 
