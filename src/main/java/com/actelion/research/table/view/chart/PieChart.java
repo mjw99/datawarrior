@@ -1,17 +1,40 @@
-package com.actelion.research.table.view;
+package com.actelion.research.table.view.chart;
+
+import com.actelion.research.table.view.JVisualization;
+import com.actelion.research.table.view.JVisualization2D;
+import com.actelion.research.table.view.VisualizationPoint;
+import com.actelion.research.table.view.VisualizationSplitter;
 
 import java.awt.*;
 
 public class PieChart extends AbstractBarOrPieChart {
 	private static final float cMaxPieSize = 1.0f;
 
+	private float[][] mPieX;
+	private float[][] mPieY;
+	private float[][] mPieSize;         // pie size in pixel
+	private float[][][] mPieColorEdge;
+
+
 	public PieChart(JVisualization visualization, int hvCount, int mode) {
 		super(visualization, hvCount, mode);
 	}
 
+	public float getPieX(int hv, int cat) {
+		return mPieX[hv][cat];
+	}
+
+	public float getPieY(int hv, int cat) {
+		return mPieY[hv][cat];
+	}
+
+	public float getPieSize(int hv, int cat) {
+		return mPieSize[hv][cat];
+	}
+
 	@Override
-	public void paint(Graphics2D g, Rectangle baseBounds, Rectangle baseGraphRect) {
-		if (!mBarOrPieDataAvailable)
+	public void calculateCoordinates(Rectangle baseGraphRect) {
+		if (!isBarOrPieDataAvailable())
 			return;
 
 		int categoryVisCount0 = mVisualization.getCategoryVisCount(0);;
@@ -26,7 +49,7 @@ public class PieChart extends AbstractBarOrPieChart {
 		mPieSize = new float[mHVCount][mCatCount];
 		mPieX = new float[mHVCount][mCatCount];
 		mPieY = new float[mHVCount][mCatCount];
-		float[][][] pieColorEdge = new float[mHVCount][mCatCount][mColor.length+1];
+		mPieColorEdge = new float[mHVCount][mCatCount][mColor.length+1];
 		int preferredCSAxis = (cellWidth > cellHeight) ? 0 : 1;
 		float csWidth = (preferredCSAxis == 0 ? cellWidth : -cellHeight)
 				* mVisualization.getCaseSeparationValue() / caseSeparationCategoryCount;
@@ -62,12 +85,12 @@ public class PieChart extends AbstractBarOrPieChart {
 
 							if (useProportionalFractions())
 								for (int l=0; l<mColor.length; l++)
-									pieColorEdge[hv][cat][l+1] = pieColorEdge[hv][cat][l] + 360.0f
+									mPieColorEdge[hv][cat][l+1] = mPieColorEdge[hv][cat][l] + 360.0f
 											* mAbsColorValueSum[hv][cat][l]
 											/ mAbsValueSum[hv][cat];
 							else
 								for (int l=0; l<mColor.length; l++)
-									pieColorEdge[hv][cat][l+1] = pieColorEdge[hv][cat][l] + 360.0f
+									mPieColorEdge[hv][cat][l+1] = mPieColorEdge[hv][cat][l] + 360.0f
 											* (float)mPointsInColorCategory[hv][cat][l]
 											/ (float)mPointsInCategory[hv][cat];
 						}
@@ -75,6 +98,48 @@ public class PieChart extends AbstractBarOrPieChart {
 				}
 			}
 		}
+
+		VisualizationPoint[] point = mVisualization.getDataPoints();
+		int chartColumn = mVisualization.getChartType().getColumn();
+
+		float[][][] colorFractionEdge = null;
+		if (useProportionalFractions()) {
+			colorFractionEdge = new float[mPieColorEdge.length][][];
+			for (int i=0; i<mPieColorEdge.length; i++) {
+				colorFractionEdge[i] = new float[mPieColorEdge[i].length][];
+				for (int j=0; j<mPieColorEdge[i].length; j++)
+					colorFractionEdge[i][j] = mPieColorEdge[i][j].clone();
+			}
+		}
+
+		// calculate coordinates for selection
+		for (VisualizationPoint vp:point) {
+			if (mVisualization.isVisibleInBarsOrPies(vp)) {
+				int hv = vp.hvIndex;
+				int cat = mVisualization.getChartCategoryIndex(vp);
+				float angle = 0f;
+				if (useProportionalFractions()) {
+					int colorIndex = mVisualization.getColorIndex(vp, mBaseColorCount, mFocusFlagNo);
+					float fractionAngle = 360f * Math.abs(vp.record.getDouble(chartColumn))
+							/ mAbsValueSum[hv][cat];
+					vp.widthOrAngle1 = colorFractionEdge[hv][cat][colorIndex];
+					angle = (colorFractionEdge[hv][cat][colorIndex] + 0.5f * fractionAngle) * (float)Math.PI / 180f;
+					colorFractionEdge[hv][cat][colorIndex] += fractionAngle;
+					vp.heightOrAngle2 = colorFractionEdge[hv][cat][colorIndex];
+				}
+				else {
+					angle = (0.5f + vp.chartGroupIndex) * 2.0f * (float)Math.PI / mPointsInCategory[hv][cat];
+				}
+				vp.screenX = Math.round(mPieX[hv][cat]+ mPieSize[hv][cat]/2.0f*(float)Math.cos(angle));
+				vp.screenY = Math.round(mPieY[hv][cat]- mPieSize[hv][cat]/2.0f*(float)Math.sin(angle));
+			}
+		}
+	}
+
+	@Override
+	public void paint(Graphics2D g, Rectangle baseBounds, Rectangle baseGraphRect) {
+		if (!isBarOrPieDataAvailable())
+			return;
 
 		Composite original = null;
 		float markerTransparency = ((JVisualization2D)mVisualization).getMarkerTransparency();
@@ -107,8 +172,8 @@ public class PieChart extends AbstractBarOrPieChart {
 							if (mPointsInColorCategory[hv][cat][k] > 0) {
 								g.setColor(mColor[k]);
 								g.fillArc(x-r, y-r, 2*r, 2*r,
-										Math.round(pieColorEdge[hv][cat][k]),
-										Math.round(pieColorEdge[hv][cat][k+1])-Math.round(pieColorEdge[hv][cat][k]));
+										Math.round(mPieColorEdge[hv][cat][k]),
+										Math.round(mPieColorEdge[hv][cat][k+1])-Math.round(mPieColorEdge[hv][cat][k]));
 							}
 						}
 					}
@@ -145,30 +210,22 @@ public class PieChart extends AbstractBarOrPieChart {
 
 		if (original != null)
 			g.setComposite(original);
+	}
 
-		VisualizationPoint[] point = mVisualization.getDataPoints();
-		int chartColumn = mVisualization.getChartColumn();
-
-		// calculate coordinates for selection
-		for (VisualizationPoint vp:point) {
-			if (mVisualization.isVisibleInBarsOrPies(vp)) {
-				int hv = vp.hvIndex;
-				int cat = mVisualization.getChartCategoryIndex(vp);
-				float angle = 0f;
-				if (useProportionalFractions()) {
-					int colorIndex = mVisualization.getColorIndex(vp, mBaseColorCount, mFocusFlagNo);
-					float fractionAngle = 360f * Math.abs(vp.record.getDouble(chartColumn))
-							/ mAbsValueSum[hv][cat];
-					vp.widthOrAngle1 = pieColorEdge[hv][cat][colorIndex];
-					angle = (pieColorEdge[hv][cat][colorIndex] + 0.5f * fractionAngle) * (float)Math.PI / 180f;
-					pieColorEdge[hv][cat][colorIndex] += fractionAngle;
-					vp.heightOrAngle2 = pieColorEdge[hv][cat][colorIndex];
-				}
-				else {
-					angle = (0.5f + vp.chartGroupIndex) * 2.0f * (float)Math.PI / mPointsInCategory[hv][cat];
-				}
-				vp.screenX = Math.round(mPieX[hv][cat]+ mPieSize[hv][cat]/2.0f*(float)Math.cos(angle));
-				vp.screenY = Math.round(mPieY[hv][cat]- mPieSize[hv][cat]/2.0f*(float)Math.sin(angle));
+	/**
+	 * If we need space for statistics labels, then reduce the area that we have for the pie.
+	 * If we show a scale reflecting the pie values, then we need to transform scale labels
+	 * accordingly.
+	 * @param baseRect
+	 */
+	@Override
+	public void adaptDoubleScalesForStatisticalLabels(final Rectangle baseRect) {
+		if (mVisualization.getColumnIndex(1) != JVisualization.cColumnUnassigned) {
+			float cellHeight = baseRect.height / (float)mVisualization.getCategoryVisCount(1);
+			float labelSize = Math.min(cellHeight / 2f, calculateStatisticsLabelSize(false, 0f));
+			if (labelSize != 0f) {
+				float shift = labelSize / (2f * baseRect.height);
+				((JVisualization2D)mVisualization).transformScaleLinePositions(1, shift, 1f);
 			}
 		}
 	}

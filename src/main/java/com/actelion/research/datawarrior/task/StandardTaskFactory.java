@@ -41,6 +41,7 @@ import com.actelion.research.datawarrior.task.list.*;
 import com.actelion.research.datawarrior.task.macro.*;
 import com.actelion.research.datawarrior.task.table.*;
 import com.actelion.research.datawarrior.task.view.*;
+import org.openmolecules.datawarrior.plugin.IPluginTask;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
@@ -91,6 +92,7 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskAddStandardInchi.TASK_NAME) ? new DETaskAddStandardInchi(frame)
 			 : codeMatches(taskCode, DETaskExtractFragment.TASK_NAME) ? new DETaskExtractFragment(frame)
 			 : codeMatches(taskCode, DETaskAddNewFilter.TASK_NAME) ? new DETaskAddNewFilter(frame, pruningPanel)
+			 : codeMatches(taskCode, DETaskAddReactionSmiles.TASK_NAME) ? new DETaskAddReactionSmiles(frame)
 			 : codeMatches(taskCode, DETaskAddRowNumbers.TASK_NAME) ? new DETaskAddRowNumbers(frame)
 			 : codeMatches(taskCode, DETaskAddSelectionToList.TASK_NAME) ? new DETaskAddSelectionToList(frame, -1)
 			 : codeMatches(taskCode, DETaskAddSmiles.TASK_NAME) ? new DETaskAddSmiles(frame)
@@ -296,12 +298,14 @@ public class StandardTaskFactory {
 		}
 
 	private DETaskPluginTask createPluginTaskFromCode(DataWarrior application, String taskCode) {
-		ArrayList<PluginTaskDefinition> pluginTaskList = application.getPluginRegistry().getPluginTasks();
-		for (PluginTaskDefinition def:pluginTaskList)
-			if (taskCode.equals(def.getTaskCode()))
-				return new DETaskPluginTask(application, def.getTask());
-
-		return null;
+		IPluginTask task = application.getPluginRegistry().getPluginTask(taskCode);
+		return (task == null) ? null : new DETaskPluginTask(application, task);
+//		ArrayList<PluginTaskDefinition> pluginTaskList = application.getPluginRegistry().getPluginTasks();
+//		for (PluginTaskDefinition def:pluginTaskList)
+//			if (taskCode.equals(def.getTaskCode()))
+//				return new DETaskPluginTask(application, def.getTask());
+//
+//		return null;
 		}
 
 	public TreeSet<TaskSpecification> getTaskDictionary(DEFrame frame) {
@@ -322,6 +326,7 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskCalculateFuzzyScore.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskExtractFragment.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILTER, DETaskAddNewFilter.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskAddReactionSmiles.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskAddRowNumbers.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_LIST, DETaskAddSelectionToList.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskAddSmiles.TASK_NAME));
