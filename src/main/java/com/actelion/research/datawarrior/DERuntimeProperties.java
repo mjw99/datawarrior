@@ -32,6 +32,7 @@ import com.actelion.research.table.filter.JFilterPanel;
 import com.actelion.research.table.model.CompoundTableListHandler;
 import com.actelion.research.table.model.CompoundTableModel;
 import com.actelion.research.table.view.*;
+import com.actelion.research.table.view.chart.ChartType;
 import com.actelion.research.table.view.config.CardsViewConfiguration;
 import com.actelion.research.table.view.config.ViewConfiguration;
 import com.actelion.research.util.DoubleFormat;
@@ -177,6 +178,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 	private static final String cSplitViewShowEmpty = "splitViewShowEmpty";
 	private static final String cCaseSeparationColumn = "caseSeparationColumn";
 	private static final String cCaseSeparationValue = "caseSeparationValue";
+	private static final String cEdgeSmoothing = "edgeSmoothing";
 	private static final String cChartType = "chartType";
 	private static final String cChartMode = "chartMode";
 	private static final String cChartColumn = "chartColumn";
@@ -529,7 +531,7 @@ public class DERuntimeProperties extends RuntimeProperties {
 			JVisualization visualization = vpanel.getVisualization();
 
 			int chartType = -1;
-			int chartMode = JVisualization2D.cChartModeCount;
+			int chartMode = ChartType.cModeCount;
 			int chartColumn = JVisualization.cColumnUnassigned;
 
 			// for compatibility up to version 3.4.2
@@ -540,23 +542,23 @@ public class DERuntimeProperties extends RuntimeProperties {
 				value = getProperty("preferHistogram");
 
 			if (value != null && value.equals("false")) {
-				chartType = JVisualization2D.cChartTypeScatterPlot;
+				chartType = ChartType.cTypeScatterPlot;
 				}
 			else {	// this is the handling after version 3.5.0
-				chartType = decodeProperty(cChartType+viewName, JVisualization.CHART_TYPE_CODE);
+				chartType = decodeProperty(cChartType+viewName, ChartType.TYPE_CODE);
 				value = getProperty(cChartMode+viewName);
-				for (int i=0; i<JVisualization.CHART_MODE_CODE.length; i++) {
-					if (JVisualization.CHART_MODE_CODE[i].equals(value)) {
+				for (int i = 0; i<ChartType.MODE_CODE.length; i++) {
+					if (ChartType.MODE_CODE[i].equals(value)) {
 						chartMode = i;
 						break;
 						}
 					}
-				if (chartMode != JVisualization.cChartModeCount && chartMode != JVisualization.cChartModePercent) {
+				if (chartMode != ChartType.cModeCount && chartMode != ChartType.cModePercent) {
 					String columnName = getProperty(cChartColumn+viewName);
 					if (columnName != null)
 						chartColumn = mTableModel.findColumn(columnName);
 					if (chartColumn == JVisualization.cColumnUnassigned)
-						chartMode = JVisualization.cChartModeCount;
+						chartMode = ChartType.cModeCount;
 					}
 				}
 			visualization.setPreferredChartType(chartType, chartMode, chartColumn);
@@ -1061,6 +1063,10 @@ public class DERuntimeProperties extends RuntimeProperties {
 				int type = decodeProperty(cCorrelationCoefficient+viewName, CorrelationCalculator.TYPE_NAME);
 				if (type != -1)
 					((JVisualization2D)visualization).setShownCorrelationType(type);
+
+				value = getProperty(cEdgeSmoothing+viewName);
+				if (value != null)
+					((JVisualization2D)visualization).setEdgeSmoothing(Float.parseFloat(value));
 				}
 
 			if (view instanceof VisualizationPanel3D) {
@@ -1574,12 +1580,12 @@ public class DERuntimeProperties extends RuntimeProperties {
 
 					learnMarkerLabelDisplayerProperties(viewName, visualization);
 
-					int type = visualization.getChartType();
-					setProperty(cChartType+viewName, JVisualization.CHART_TYPE_CODE[type]);
-					if (type == JVisualization.cChartTypeBars || type == JVisualization.cChartTypePies) {
+					ChartType type = visualization.getChartType();
+					setProperty(cChartType+viewName, ChartType.TYPE_CODE[type.getType()]);
+					if (ChartType.supportsProportionalFractions(type.getType())) {
 						int mode = visualization.getPreferredChartMode();
-						setProperty(cChartMode+viewName, JVisualization.CHART_MODE_CODE[mode]);
-						if (mode != JVisualization.cChartModeCount && mode != JVisualization.cChartModePercent) {
+						setProperty(cChartMode+viewName, ChartType.MODE_CODE[mode]);
+						if (mode != ChartType.cModeCount && mode != ChartType.cModePercent) {
 							column = visualization.getPreferredChartColumn();
 							setProperty(cChartColumn+viewName, mTableModel.getColumnTitleNoAlias(column));
 							}
@@ -1815,6 +1821,12 @@ public class DERuntimeProperties extends RuntimeProperties {
 						int correlationType = ((JVisualization2D)visualization).getShownCorrelationType();
 						if (correlationType != CorrelationCalculator.TYPE_NONE) {
 							setProperty(cCorrelationCoefficient+viewName, CorrelationCalculator.TYPE_NAME[correlationType]);
+							}
+
+						if (ChartType.supportsEdgeSmoothing(type.getType())) {
+							float smoothing = ((JVisualization2D)visualization).getEdgeSmoothing();
+							if (smoothing != JVisualization2D.DEFAULT_EDGE_SMOOTHING)
+								setProperty(cEdgeSmoothing+viewName, ""+smoothing);
 							}
 						}
 					}

@@ -1,18 +1,33 @@
-package com.actelion.research.table.view;
+package com.actelion.research.table.view.chart;
 
+import com.actelion.research.table.view.JVisualization;
+import com.actelion.research.table.view.JVisualization2D;
+import com.actelion.research.table.view.VisualizationPoint;
+import com.actelion.research.table.view.VisualizationSplitter;
 import com.actelion.research.util.ColorHelper;
 
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 
 public class BarChart extends AbstractBarOrPieChart {
+	private static final float cMaxBarReduction = 0.66f;
+
+	private float[][] mBarPosition = new float[mHVCount][mCatCount];
+	private float[][][] mBarColorEdge = new float[mHVCount][mCatCount][mColor.length+1];
+
+
 	public BarChart(JVisualization visualization, int hvCount, int mode) {
 		super(visualization, hvCount, mode);
 	}
 
 	@Override
-	public void paint(Graphics2D g, Rectangle baseBounds, Rectangle baseGraphRect) {
-		if (!mBarOrPieDataAvailable)
+	public float getScaleLinePosition(int axis) {
+		return axis == mDoubleAxis ? (mBarBase - mAxisMin) / (mAxisMax - mAxisMin) : super.getScaleLinePosition(axis);
+	}
+
+	@Override
+	public void calculateCoordinates(Rectangle baseGraphRect) {
+		if (!isBarOrPieDataAvailable())
 			return;
 
 		float axisRange = mAxisMax - mAxisMin;
@@ -46,8 +61,8 @@ public class BarChart extends AbstractBarOrPieChart {
 		else
 			mInnerDistance = new float[mHVCount][mCatCount];
 
-		float[][] barPosition = new float[mHVCount][mCatCount];
-		float[][][] barColorEdge = new float[mHVCount][mCatCount][mColor.length+1];
+		mBarPosition = new float[mHVCount][mCatCount];
+		mBarColorEdge = new float[mHVCount][mCatCount][mColor.length+1];
 		float csWidth = (mDoubleAxis == 1 ? cellWidth : -cellWidth)
 				* mVisualization.getCaseSeparationValue() / caseSeparationCategoryCount;
 		float csOffset = csWidth * (1 - caseSeparationCategoryCount) / 2.0f;
@@ -70,18 +85,18 @@ public class BarChart extends AbstractBarOrPieChart {
 								mAbsValueFactor[hv][cat] = (mAbsValueSum[hv][cat] == 0f) ? 0f : barHeight / mAbsValueSum[hv][cat];
 							else
 								mInnerDistance[hv][cat] = barHeight / (float)mPointsInCategory[hv][cat];
-							barPosition[hv][cat] = (mDoubleAxis == 1) ?
+							mBarPosition[hv][cat] = (mDoubleAxis == 1) ?
 									baseGraphRect.x + hOffset + i*cellWidth + cellWidth/2
 									: baseGraphRect.y + vOffset + baseGraphRect.height - j*cellWidth - cellWidth/2;
 
 							if (caseSeparationCategoryCount != 1)
-								barPosition[hv][cat] += csOffset + k*csWidth;
+								mBarPosition[hv][cat] += csOffset + k*csWidth;
 
 							// right bound bars have negative values and the barBase set to 0f (==axisMax).
 							// Move them left by one bar length and extend them to the right (done by positive inner distance).
 							float barOffset = isRightBarChart() || (isCenteredBarChart() && mBarValue[hv][cat] < 0f) ?
 									cellHeight * (mBarValue[hv][cat] - mBarBase) / axisRange : 0f;
-							barColorEdge[hv][cat][0] = (mDoubleAxis == 1) ?
+							mBarColorEdge[hv][cat][0] = (mDoubleAxis == 1) ?
 									baseGraphRect.y + vOffset - barBaseOffset - barOffset + baseGraphRect.height - cellHeight * j
 									: baseGraphRect.x + hOffset + barBaseOffset + barOffset + cellHeight * i;
 
@@ -89,16 +104,16 @@ public class BarChart extends AbstractBarOrPieChart {
 								for (int l=0; l<mColor.length; l++) {
 									float size = (mAbsValueSum[hv][cat] == 0f) ? 0f : mAbsColorValueSum[hv][cat][l]
 											* barHeight / mAbsValueSum[hv][cat];
-									barColorEdge[hv][cat][l+1] = (mDoubleAxis == 1) ?
-											barColorEdge[hv][cat][l] - size : barColorEdge[hv][cat][l] + size;
+									mBarColorEdge[hv][cat][l+1] = (mDoubleAxis == 1) ?
+											mBarColorEdge[hv][cat][l] - size : mBarColorEdge[hv][cat][l] + size;
 								}
 							}
 							else {  // calculate color edge position based on color category counts
 								for (int l=0; l<mColor.length; l++) {
 									float size = barHeight * mPointsInColorCategory[hv][cat][l]
 											/ mPointsInCategory[hv][cat];
-									barColorEdge[hv][cat][l + 1] = (mDoubleAxis == 1) ?
-											barColorEdge[hv][cat][l] - size : barColorEdge[hv][cat][l] + size;
+									mBarColorEdge[hv][cat][l + 1] = (mDoubleAxis == 1) ?
+											mBarColorEdge[hv][cat][l] - size : mBarColorEdge[hv][cat][l] + size;
 								}
 							}
 						}
@@ -106,6 +121,73 @@ public class BarChart extends AbstractBarOrPieChart {
 				}
 			}
 		}
+
+		VisualizationPoint[] point = mVisualization.getDataPoints();
+		int chartColumn = mVisualization.getChartType().getColumn();
+		int sizeColumn = mVisualization.getMarkerSizeColumn();
+
+		float[][][] colorFractionEdge = null;
+		if (useProportionalFractions()) {
+			colorFractionEdge = new float[mBarColorEdge.length][][];
+			for (int i=0; i<mBarColorEdge.length; i++) {
+				colorFractionEdge[i] = new float[mBarColorEdge[i].length][];
+				for (int j=0; j<mBarColorEdge[i].length; j++)
+					colorFractionEdge[i][j] = mBarColorEdge[i][j].clone();
+			}
+		}
+
+		for (VisualizationPoint vp:point) {
+			if (mVisualization.isVisibleInBarsOrPies(vp)) {
+				int hv = vp.hvIndex;
+				int cat = mVisualization.getChartCategoryIndex(vp);
+				int colorIndex = mVisualization.getColorIndex(vp, mBaseColorCount, mFocusFlagNo);
+
+				float width = mBarWidth;
+				if (useProportionalWidths())
+					width *= getBarWidthFactor(vp.record.getDouble(sizeColumn));
+
+				if (useProportionalFractions()) {
+					if (mDoubleAxis == 1) {
+						vp.screenX = mBarPosition[hv][cat];
+						vp.widthOrAngle1 = width;
+						float fractionHeight = Math.abs(vp.record.getDouble(chartColumn))
+								* mAbsValueFactor[hv][cat];
+						vp.screenY = colorFractionEdge[hv][cat][colorIndex] - 0.5f * fractionHeight;
+						colorFractionEdge[hv][cat][colorIndex] -= fractionHeight;
+						vp.heightOrAngle2 = fractionHeight;
+					}
+					else {
+						float fractionHeight = Math.abs(vp.record.getDouble(chartColumn))
+								* mAbsValueFactor[hv][cat];
+						vp.screenX = colorFractionEdge[hv][cat][colorIndex] + 0.5f * fractionHeight;
+						colorFractionEdge[hv][cat][colorIndex] += fractionHeight;
+						vp.widthOrAngle1 = fractionHeight;
+						vp.screenY = mBarPosition[hv][cat];
+						vp.heightOrAngle2 = width;
+					}
+				}
+				else {
+					if (mDoubleAxis == 1) {
+						vp.screenX = mBarPosition[hv][cat];
+						vp.widthOrAngle1 = width;
+						vp.screenY = mBarColorEdge[hv][cat][0] - mInnerDistance[hv][cat] * (0.5f + vp.chartGroupIndex);
+						vp.heightOrAngle2 = mInnerDistance[hv][cat];
+					}
+					else {
+						vp.screenX = mBarColorEdge[hv][cat][0] + mInnerDistance[hv][cat] * (0.5f + vp.chartGroupIndex);
+						vp.widthOrAngle1 = mInnerDistance[hv][cat];
+						vp.screenY = mBarPosition[hv][cat];
+						vp.heightOrAngle2 = width;
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	public void paint(Graphics2D g, Rectangle baseBounds, Rectangle baseGraphRect) {
+		if (!isBarOrPieDataAvailable())
+			return;
 
 		Composite original = null;
 		float markerTransparency = ((JVisualization2D)mVisualization).getMarkerTransparency();
@@ -126,28 +208,28 @@ public class BarChart extends AbstractBarOrPieChart {
 							float width = mBarWidth;
 							g.setColor(mColor[k]);
 							if (mDoubleAxis == 1)
-								g.fillRect(Math.round(barPosition[hv][cat]-width/2),
-										Math.round(barColorEdge[hv][cat][k+1]),
+								g.fillRect(Math.round(mBarPosition[hv][cat]-width/2),
+										Math.round(mBarColorEdge[hv][cat][k+1]),
 										Math.round(width),
-										Math.round(barColorEdge[hv][cat][k])-Math.round(barColorEdge[hv][cat][k+1]));
+										Math.round(mBarColorEdge[hv][cat][k])-Math.round(mBarColorEdge[hv][cat][k+1]));
 							else
-								g.fillRect(Math.round(barColorEdge[hv][cat][k]),
-										Math.round(barPosition[hv][cat]-width/2),
-										Math.round(barColorEdge[hv][cat][k+1]-Math.round(barColorEdge[hv][cat][k])),
+								g.fillRect(Math.round(mBarColorEdge[hv][cat][k]),
+										Math.round(mBarPosition[hv][cat]-width/2),
+										Math.round(mBarColorEdge[hv][cat][k+1]-Math.round(mBarColorEdge[hv][cat][k])),
 										Math.round(width));
 						}
 					}
 					if (drawOutline && mPointsInCategory[hv][cat] > 0) {
 						g.setColor(outlineGray);
 						if (mDoubleAxis == 1)
-							g.drawRect(Math.round(barPosition[hv][cat]- mBarWidth /2),
-									Math.round(barColorEdge[hv][cat][mColor.length]),
+							g.drawRect(Math.round(mBarPosition[hv][cat]- mBarWidth /2),
+									Math.round(mBarColorEdge[hv][cat][mColor.length]),
 									Math.round(mBarWidth),
-									Math.round(barColorEdge[hv][cat][0])-Math.round(barColorEdge[hv][cat][mColor.length]));
+									Math.round(mBarColorEdge[hv][cat][0])-Math.round(mBarColorEdge[hv][cat][mColor.length]));
 						else
-							g.drawRect(Math.round(barColorEdge[hv][cat][0]),
-									Math.round(barPosition[hv][cat]- mBarWidth /2),
-									Math.round(barColorEdge[hv][cat][mColor.length])-Math.round(barColorEdge[hv][cat][0]),
+							g.drawRect(Math.round(mBarColorEdge[hv][cat][0]),
+									Math.round(mBarPosition[hv][cat]- mBarWidth /2),
+									Math.round(mBarColorEdge[hv][cat][mColor.length])-Math.round(mBarColorEdge[hv][cat][0]),
 									Math.round(mBarWidth));
 					}
 				}
@@ -166,10 +248,10 @@ public class BarChart extends AbstractBarOrPieChart {
 						int lineCount = compileStatisticsLines(hv, cat, lineText);
 
 						if (mDoubleAxis == 1) {
-							float x0 = barPosition[hv][cat];
+							float x0 = mBarPosition[hv][cat];
 							float y0 = labelIsLeftOrBelow ?
-									barColorEdge[hv][cat][0] + scaledFontHeight
-									: barColorEdge[hv][cat][mColor.length] - ((float)lineCount - 0.7f) * scaledFontHeight;
+									mBarColorEdge[hv][cat][0] + scaledFontHeight
+									: mBarColorEdge[hv][cat][mColor.length] - ((float)lineCount - 0.7f) * scaledFontHeight;
 							for (int line=0; line<lineCount; line++) {
 								float x = x0 - g.getFontMetrics().stringWidth(lineText[line])/2f;
 								float y = y0 + line*scaledFontHeight;
@@ -178,9 +260,9 @@ public class BarChart extends AbstractBarOrPieChart {
 						}
 						else {
 							float x0 = labelIsLeftOrBelow ?
-									barColorEdge[hv][cat][0] - scaledFontHeight/2f
-									: barColorEdge[hv][cat][mColor.length] + scaledFontHeight/2f;
-							float y0 = barPosition[hv][cat] - ((lineCount-1)*scaledFontHeight)/2f + g.getFontMetrics().getAscent()/2f;
+									mBarColorEdge[hv][cat][0] - scaledFontHeight/2f
+									: mBarColorEdge[hv][cat][mColor.length] + scaledFontHeight/2f;
+							float y0 = mBarPosition[hv][cat] - ((lineCount-1)*scaledFontHeight)/2f + g.getFontMetrics().getAscent()/2f;
 							for (int line=0; line<lineCount; line++) {
 								float x = x0 - (labelIsLeftOrBelow ? g.getFontMetrics().stringWidth(lineText[line]) : 0f);
 								float y = y0 + line*scaledFontHeight;
@@ -193,54 +275,10 @@ public class BarChart extends AbstractBarOrPieChart {
 		}
 
 		VisualizationPoint[] point = mVisualization.getDataPoints();
-		int chartColumn = mVisualization.getChartColumn();
-		int sizeColumn = mVisualization.getMarkerSizeColumn();
 
 		for (VisualizationPoint vp:point) {
 			if (mVisualization.isVisibleInBarsOrPies(vp)) {
-				int hv = vp.hvIndex;
-				int cat = mVisualization.getChartCategoryIndex(vp);
 				int colorIndex = mVisualization.getColorIndex(vp, mBaseColorCount, mFocusFlagNo);
-
-				float width = mBarWidth;
-				if (useProportionalWidths())
-					width *= getBarWidthFactor(vp.record.getDouble(sizeColumn));
-
-				if (useProportionalFractions()) {
-					if (mDoubleAxis == 1) {
-						vp.screenX = barPosition[hv][cat];
-						vp.widthOrAngle1 = width;
-						float fractionHeight = Math.abs(vp.record.getDouble(chartColumn))
-								* mAbsValueFactor[hv][cat];
-						vp.screenY = barColorEdge[hv][cat][colorIndex] - 0.5f * fractionHeight;
-						barColorEdge[hv][cat][colorIndex] -= fractionHeight;
-						vp.heightOrAngle2 = fractionHeight;
-					}
-					else {
-						float fractionHeight = Math.abs(vp.record.getDouble(chartColumn))
-								* mAbsValueFactor[hv][cat];
-						vp.screenX = barColorEdge[hv][cat][colorIndex] + 0.5f * fractionHeight;
-						barColorEdge[hv][cat][colorIndex] += fractionHeight;
-						vp.widthOrAngle1 = fractionHeight;
-						vp.screenY = barPosition[hv][cat];
-						vp.heightOrAngle2 = width;
-					}
-				}
-				else {
-					if (mDoubleAxis == 1) {
-						vp.screenX = barPosition[hv][cat];
-						vp.widthOrAngle1 = width;
-						vp.screenY = barColorEdge[hv][cat][0] - mInnerDistance[hv][cat] * (0.5f + vp.chartGroupIndex);
-						vp.heightOrAngle2 = mInnerDistance[hv][cat];
-					}
-					else {
-						vp.screenX = barColorEdge[hv][cat][0] + mInnerDistance[hv][cat] * (0.5f + vp.chartGroupIndex);
-						vp.widthOrAngle1 = mInnerDistance[hv][cat];
-						vp.screenY = barPosition[hv][cat];
-						vp.heightOrAngle2 = width;
-					}
-				}
-
 				if (useProportionalWidths()) {
 					g.setColor(mColor[colorIndex]);
 					g.fill(new Rectangle2D.Float(vp.screenX-vp.widthOrAngle1/2f, vp.screenY-vp.heightOrAngle2/2f, vp.widthOrAngle1, vp.heightOrAngle2));
@@ -287,6 +325,45 @@ public class BarChart extends AbstractBarOrPieChart {
 
 			if (labelComposite != null)
 				g.setComposite(original);
+		}
+	}
+
+	/**
+	 * If we need space for statistics labels, then reduce the area that we have for the bar.
+	 * If we show a scale reflecting the bar values, then we need to transform scale labels
+	 * accordingly.
+	 * @param baseRect
+	 */
+	@Override
+	public void adaptDoubleScalesForStatisticalLabels(final Rectangle baseRect) {
+		for (int axis=0; axis<2; axis++) {
+			if (axis == mDoubleAxis) {
+				float cellSize = (axis == 0 ? baseRect.width : baseRect.height) / (float)mVisualization.getCategoryVisCount(axis);
+				float spacing = cellSize * getBarChartEmptyLabelAreaSpacing();
+				float labelSize = calculateStatisticsLabelSize(axis == 0, spacing);
+				if (labelSize != 0f) {
+					float reduction = Math.min(cMaxBarReduction * cellSize, labelSize - spacing);
+					float appliedHeight = (cellSize - reduction);
+
+					// if the axis is not assigned to a category column, then we have a double value scale
+					if (mVisualization.getColumnIndex(axis) == JVisualization.cColumnUnassigned) {
+						float shift = isRightBarChart() ? reduction / cellSize : 0f;
+						((JVisualization2D)mVisualization).transformScaleLinePositions(axis, shift, appliedHeight / cellSize);
+					}
+					// if the bar axis shows category values, then we correct centered bars only: label must be at bar base
+					else if (isCenteredBarChart()) {
+						float lowFraction = mAxisMin / (mAxisMin - mAxisMax);
+						float shift = (lowFraction * appliedHeight / cellSize - lowFraction) / (float)mVisualization.getCategoryVisCount(axis);
+						((JVisualization2D)mVisualization).transformScaleLinePositions(axis, shift, 1f);
+					}
+
+					float originalRange = mAxisMax - mAxisMin;
+					if (!isRightBarChart())
+						mAxisMax = mAxisMin + originalRange * cellSize / appliedHeight;
+					else
+						mAxisMin = mAxisMax - originalRange * cellSize / appliedHeight;
+				}
+			}
 		}
 	}
 }

@@ -16,9 +16,10 @@
  * @author Thomas Sander
  */
 
-package com.actelion.research.table.view;
+package com.actelion.research.table.view.chart;
 
 import com.actelion.research.table.model.CompoundTableModel;
+import com.actelion.research.table.view.*;
 import com.actelion.research.util.DoubleFormat;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.stat.inference.TTestImpl;
@@ -28,7 +29,8 @@ import java.awt.geom.GeneralPath;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
-public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
+public abstract class AbstractDistributionPlot extends AbstractChart {
+	protected static final int cBoxplotMeanModeNoIndicator = 0;
 	protected static final int cBoxplotMeanModeMedian = 1;
 	protected static final int cBoxplotMeanModeMean = 2;
 	protected static final int cBoxplotMeanModeLines = 3;
@@ -42,23 +44,55 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 	float[][] mPValue;	// t-test based p-value
 	float[][] mFoldChange;// fold change compared to reference category
 	int[][] mOutlierCount;// count of rows outside of LAV and UAV
-	int mDoubleColumn;
+	int mDoubleColumn,mCaseCount;
+	float mCellWidth,mCellHeight,mCaseWidth;
+	int[][] mHVOffset;  // mHVOffset[0][hv]: horizontal offsets; mHVOffset[1][hv]: vertical offsets
 
-    public AbstractDistributionPlot(JVisualization visualization, int hvCount, int doubleAxis) {
+	// Statisctical values translated to screen positions:
+	float[][] mSCenter,mSMean,mSMedian,mSLAV,mSUAV,mSQ1,mSQ3;
+	float[][][] mSBarColorEdge;
+
+	public AbstractDistributionPlot(JVisualization visualization, int hvCount, int doubleAxis) {
     	super(visualization, hvCount, doubleAxis);
     	}
 
-	@Override
-	public boolean isChartWithMarkers() {
-		// NaN markers (all plots), outliers (box plot), all markers (whisker plot)
-		return true;
-		}
+	public float getMedian(int hv, int cat) {
+		return mMedian[hv][cat];
+	}
+
+	public float getBoxQ1(int hv, int cat) {
+		return mBoxQ1[hv][cat];
+	}
+
+	public float getBoxQ3(int hv, int cat) {
+		return mBoxQ3[hv][cat];
+	}
+
+	public float getBoxUAV(int hv, int cat) {
+		return mBoxUAV[hv][cat];
+	}
+
+	public float getBoxLAV(int hv, int cat) {
+		return mBoxLAV[hv][cat];
+	}
+
+	public float getPValue(int hv, int cat) {
+		return mPValue[hv][cat];
+	}
+
+	public float getFoldChange(int hv, int cat) {
+		return mFoldChange[hv][cat];
+	}
+
+	public int getOutlierCount(int hv, int cat) {
+		return mOutlierCount[hv][cat];
+	}
 
 	public boolean isOutsideValue(int hv, int cat, float value) {
     	return (value < mBoxLAV[hv][cat]) || (value > mBoxUAV[hv][cat]);
     	}
 
-	protected void calculate(int chartType) {
+	protected void calculateStatistics() {
 		mDoubleColumn = mVisualization.getColumnIndex(mDoubleAxis);
 
 		VisualizationPoint[] point = mVisualization.getDataPoints();
@@ -227,8 +261,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 		return 0;
 	}
 
-	protected void calculateCoordinates(Rectangle baseGraphRect, float[][] position, float[][] mean, float[][] median,
-	                                    float[][] lav, float[][] uav, float[][] q1, float[][] q3, float[][][] barColorEdge) {
+	protected void calculateScreenCoordinates(Rectangle baseGraphRect) {
 		int dimensions = mVisualization.getDimensionCount();
 		float[] axisVisMin = new float[dimensions];
 		float[] axisVisMax = new float[dimensions];
@@ -237,18 +270,19 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 			axisVisMax[i] = mVisualization.getVisibleMax(i);
 		}
 
-		float cellWidth = (mDoubleAxis == 1) ?
+		mCellWidth = (mDoubleAxis == 1) ?
 				(float)baseGraphRect.width / (float)mVisualization.getCategoryVisCount(0)
 				: (float)baseGraphRect.height / (float)mVisualization.getCategoryVisCount(1);
-		float cellHeight = (mDoubleAxis == 1) ?
+		mCellHeight = (mDoubleAxis == 1) ?
 				(float)baseGraphRect.height
 				: (float)baseGraphRect.width;
 		float valueRange = (mDoubleAxis == 1) ?
 				axisVisMax[1]-axisVisMin[1]
 				: axisVisMax[0]-axisVisMin[0];
 
-		int caseSeparationCategoryCount = mVisualization.getCaseSeparationCategoryCount();
-		mBarWidth = Math.min(0.2f * cellHeight, 0.5f * cellWidth / caseSeparationCategoryCount);
+		mCaseCount = mVisualization.getCaseSeparationCategoryCount();
+		mCaseWidth = mCellWidth / mCaseCount;
+		mBarWidth = Math.min(0.2f * mCellHeight, 0.5f * mCaseWidth);
 
 		int focusFlagNo = mVisualization.getFocusFlag();
 		int basicColorCount = mVisualization.getMarkerColor().getColorList().length + 2;
@@ -256,82 +290,80 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 		int axisCatCount = mVisualization.getCategoryVisCount(mDoubleAxis == 1 ? 0 : 1);
 
 		mInnerDistance = new float[mHVCount][mCatCount];
-		float csWidth = (mDoubleAxis == 1 ? cellWidth : -cellWidth)
-				* mVisualization.getCaseSeparationValue() / caseSeparationCategoryCount;
-		float csOffset = csWidth * (1 - caseSeparationCategoryCount) / 2.0f;
+		float csWidth = (mDoubleAxis == 1 ? mCaseWidth : -mCaseWidth)
+				* mVisualization.getCaseSeparationValue();
+		float csOffset = csWidth * (1 - mCaseCount) / 2.0f;
+		mHVOffset = new int[2][mHVCount];
 		for (int hv = 0; hv<mHVCount; hv++) {
-			int hOffset = 0;
-			int vOffset = 0;
 			if (mVisualization.isSplitView()) {
 				VisualizationSplitter splitter = mVisualization.getSplitter();
-				hOffset = splitter.getHIndex(hv) * splitter.getGridWidth();
-				vOffset = splitter.getVIndex(hv) * splitter.getGridHeight();
+				mHVOffset[0][hv] = splitter.getHIndex(hv) * splitter.getGridWidth();
+				mHVOffset[1][hv] = splitter.getVIndex(hv) * splitter.getGridHeight();
 			}
 
 			for (int i=0; i<axisCatCount; i++) {
-				for (int j=0; j<caseSeparationCategoryCount; j++) {
-					int cat = i*caseSeparationCategoryCount + j;
+				for (int j=0; j<mCaseCount; j++) {
+					int cat = i*mCaseCount + j;
 					if (mPointsInCategory[hv][cat] != 0) {
 						mInnerDistance[hv][cat] = (mBoxQ3[hv][cat] - mBoxQ1[hv][cat])
-								* cellHeight / valueRange / (float)mPointsInCategory[hv][cat];
+								* mCellHeight / valueRange / (float)mPointsInCategory[hv][cat];
 
 						int offset = 0;
 						float visMin = 0;
 						float factor = 0;
 						float distance = mInnerDistance[hv][cat];
 						if (mDoubleAxis == 1) {
-							position[hv][cat] = baseGraphRect.x + hOffset + i*cellWidth + cellWidth/2;
+							mSCenter[hv][cat] = baseGraphRect.x + mHVOffset[0][hv] + i*mCellWidth + mCellWidth/2;
 
-							offset = baseGraphRect.y + vOffset + baseGraphRect.height;
+							offset = baseGraphRect.y + mHVOffset[1][hv] + baseGraphRect.height;
 							visMin = axisVisMin[1];
 							factor =  - (float)baseGraphRect.height / valueRange;
 							distance = -distance;
 						}
 						else {
-							position[hv][cat] = baseGraphRect.y + vOffset + baseGraphRect.height - i*cellWidth - cellWidth/2;
+							mSCenter[hv][cat] = baseGraphRect.y + mHVOffset[1][hv] + baseGraphRect.height - i*mCellWidth - mCellWidth/2;
 
-							offset = baseGraphRect.x + hOffset;
+							offset = baseGraphRect.x + mHVOffset[0][hv];
 							visMin = axisVisMin[0];
 							factor =  (float)baseGraphRect.width / valueRange;
 						}
 
-						if (caseSeparationCategoryCount != 1)
-							position[hv][cat] += csOffset + j*csWidth;
+						if (mCaseCount != 1)
+							mSCenter[hv][cat] += csOffset + j*csWidth;
 
-						if (barColorEdge != null) {
-							barColorEdge[hv][cat][0] = offset + factor * (mBoxQ1[hv][cat] - visMin);
+						if (mSBarColorEdge != null) {
+							mSBarColorEdge[hv][cat][0] = offset + factor * (mBoxQ1[hv][cat] - visMin);
 
 							for (int k=0; k<colorCount; k++)
-								barColorEdge[hv][cat][k + 1] = barColorEdge[hv][cat][k] + distance
+								mSBarColorEdge[hv][cat][k + 1] = mSBarColorEdge[hv][cat][k] + distance
 										* (float)mPointsInColorCategory[hv][cat][k];
 						}
 
-						if (lav != null)
-							lav[hv][cat] = offset + factor * (mBoxLAV[hv][cat] - visMin);
-						if (uav != null)
-							uav[hv][cat] = offset + factor * (mBoxUAV[hv][cat] - visMin);
-						if (q1 != null)
-							q1[hv][cat] = offset + factor * (mBoxQ1[hv][cat] - visMin);
-						if (q3 != null)
-							q3[hv][cat] = offset + factor * (mBoxQ3[hv][cat] - visMin);
-						if (mean != null)
-							mean[hv][cat] = offset + factor * (mMean[hv][cat] - visMin);
-						if (median != null)
-							median[hv][cat] = offset + factor * (mMedian[hv][cat] - visMin);
+						if (mSLAV != null)
+							mSLAV[hv][cat] = offset + factor * (mBoxLAV[hv][cat] - visMin);
+						if (mSUAV != null)
+							mSUAV[hv][cat] = offset + factor * (mBoxUAV[hv][cat] - visMin);
+						if (mSQ1 != null)
+							mSQ1[hv][cat] = offset + factor * (mBoxQ1[hv][cat] - visMin);
+						if (mSQ3 != null)
+							mSQ3[hv][cat] = offset + factor * (mBoxQ3[hv][cat] - visMin);
+						if (mSMean != null)
+							mSMean[hv][cat] = offset + factor * (mMean[hv][cat] - visMin);
+						if (mSMedian != null)
+							mSMedian[hv][cat] = offset + factor * (mMedian[hv][cat] - visMin);
 					}
 				}
 			}
 		}
 	}
 
-	protected void drawConnectionLines(Graphics2D g, float[][] position, float[][] mean, float[][] median) {
+	protected void drawConnectionLines(Graphics2D g) {
 		VisualizationColor markerColor = mVisualization.getMarkerColor();
 		Color strongGray = mVisualization.getContrastGrey(JVisualization.SCALE_STRONG);
 		int boxplotMeanMode = mVisualization.getBoxplotMeanMode();
 
 		int connectionColumn = mVisualization.getConnectionColumn();
 		int caseSeparationColumn = mVisualization.getCaseSeparationColumn();
-		int caseSeparationCategoryCount = mVisualization.getCaseSeparationCategoryCount();
 
 		int focusFlagNo = mVisualization.getFocusFlag();
 		int basicColorCount = mVisualization.getMarkerColor().getColorList().length + 2;
@@ -344,10 +376,10 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 			g.setStroke(((JVisualization2D)mVisualization).getConnectionStroke());
 			g.setColor(boxplotMeanMode == cBoxplotMeanModeMean ? Color.RED.darker() : strongGray);
 			for (int hv = 0; hv<mHVCount; hv++) {
-				for (int j=0; j<caseSeparationCategoryCount; j++) {
+				for (int j=0; j<mCaseCount; j++) {
 					int oldX = Integer.MAX_VALUE;
 					int oldY = Integer.MAX_VALUE;
-					if (caseSeparationCategoryCount != 1
+					if (mCaseCount != 1
 							&& markerColor.getColorColumn() == caseSeparationColumn) {
 						if (markerColor.getColorListMode() == VisualizationColor.cColorListModeCategories) {
 							g.setColor(markerColor.getColor(j));
@@ -363,12 +395,12 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 					}
 
 					for (int i=0; i<axisCatCount; i++) {
-						int cat = i*caseSeparationCategoryCount + j;
+						int cat = i*mCaseCount + j;
 
 						if (mPointsInCategory[hv][cat] > 0) {
-							int value = Math.round(boxplotMeanMode == cBoxplotMeanModeMean ? mean[hv][cat] : median[hv][cat]);
-							int newX = Math.round(mDoubleAxis == 1 ? position[hv][cat] : value);
-							int newY = Math.round(mDoubleAxis == 1 ? value : position[hv][cat]);
+							int value = Math.round(boxplotMeanMode == cBoxplotMeanModeMean ? mSMean[hv][cat] : mSMedian[hv][cat]);
+							int newX = Math.round(mDoubleAxis == 1 ? mSCenter[hv][cat] : value);
+							int newY = Math.round(mDoubleAxis == 1 ? value : mSCenter[hv][cat]);
 							if (oldX != Integer.MAX_VALUE) {
 								g.drawLine(oldX, oldY, newX, newY);
 							}
@@ -379,7 +411,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 				}
 			}
 		}
-		else if (caseSeparationCategoryCount != 1 && connectionColumn == caseSeparationColumn) {
+		else if (mCaseCount != 1 && connectionColumn == caseSeparationColumn) {
 			g.setStroke(((JVisualization2D)mVisualization).getConnectionStroke());
 			g.setColor(boxplotMeanMode == cBoxplotMeanModeMean ? Color.RED.darker() : strongGray);
 			for (int hv = 0; hv<mHVCount; hv++) {
@@ -392,7 +424,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 						}
 						else {
 							for (int k=0; k<colorCount; k++) {
-								if (mPointsInColorCategory[hv][i*caseSeparationCategoryCount][k] != 0) {
+								if (mPointsInColorCategory[hv][i*mCaseCount][k] != 0) {
 									g.setColor(mColor[k]);
 									break;
 								}
@@ -400,13 +432,13 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 						}
 					}
 
-					for (int j=0; j<caseSeparationCategoryCount; j++) {
-						int cat = i*caseSeparationCategoryCount + j;
+					for (int j=0; j<mCaseCount; j++) {
+						int cat = i*mCaseCount + j;
 
 						if (mPointsInCategory[hv][cat] > 0) {
-							int value = Math.round(boxplotMeanMode == cBoxplotMeanModeMean ? mean[hv][cat] : median[hv][cat]);
-							int newX = Math.round(mDoubleAxis == 1 ? position[hv][cat] : value);
-							int newY = Math.round(mDoubleAxis == 1 ? value : position[hv][cat]);
+							int value = Math.round(boxplotMeanMode == cBoxplotMeanModeMean ? mSMean[hv][cat] : mSMedian[hv][cat]);
+							int newX = Math.round(mDoubleAxis == 1 ? mSCenter[hv][cat] : value);
+							int newY = Math.round(mDoubleAxis == 1 ? value : mSCenter[hv][cat]);
 							if (oldX != Integer.MAX_VALUE) {
 								g.drawLine(oldX, oldY, newX, newY);
 							}
@@ -419,7 +451,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 		}
 	}
 
-	protected void paintStatisticsInfo(Graphics2D g, Rectangle baseGraphRect, float[][] position, float[][] lav, float[][] uav, float offset) {
+	protected void paintStatisticsInfo(Graphics2D g, Rectangle baseGraphRect, float offset) {
 		CompoundTableModel tableModel = mVisualization.getTableModel();
 
 		Color strongGray = mVisualization.getContrastGrey(JVisualization.SCALE_STRONG);
@@ -432,7 +464,8 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 		 || mPValue != null) {
 			String[] lineText = new String[7];
 			g.setColor(strongGray);
-			int scaledFontHeight = Math.round(((JVisualization2D)mVisualization).getFontHeightScaledToSplitView());
+			int scaledFontHeight = Math.round(0.7f * ((JVisualization2D)mVisualization).getFontHeightScaledToSplitView());
+			mVisualization.setFontHeight(scaledFontHeight);
 			boolean isLogarithmic = tableModel.isLogarithmicViewMode(mDoubleColumn);
 			for (int hv = 0; hv<mHVCount; hv++) {
 				int hOffset = 0;
@@ -446,7 +479,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 					if (mPointsInCategory[hv][cat] > 0) {
 						int lineCount = 0;
 						if (mVisualization.isShowMeanAndMedianValues()) {
-							int digits = tableModel.isColumnTypeInteger(mDoubleColumn) ? AbstractCategoryChart.INT_DIGITS : AbstractCategoryChart.FLOAT_DIGITS;
+							int digits = tableModel.isColumnTypeInteger(mDoubleColumn) ? AbstractChart.INT_DIGITS : AbstractChart.FLOAT_DIGITS;
 							float meanValue = isLogarithmic ? (float)Math.pow(10, mMean[hv][cat]) : mMean[hv][cat];
 							float medianValue = isLogarithmic ? (float)Math.pow(10, mMedian[hv][cat]) : mMedian[hv][cat];
 							switch (mVisualization.getBoxplotMeanMode()) {
@@ -469,7 +502,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 							}
 							else {
 								double sdev = isLogarithmic ? Math.pow(10, mStdDev[hv][cat]) : mStdDev[hv][cat];
-								lineText[lineCount++] = "\u03C3=" + DoubleFormat.toString(sdev, AbstractCategoryChart.FLOAT_DIGITS);
+								lineText[lineCount++] = "\u03C3=" + DoubleFormat.toString(sdev, AbstractChart.FLOAT_DIGITS);
 							}
 						}
 						if (mVisualization.isShowConfidenceInterval()) {
@@ -483,7 +516,7 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 									ll = Math.pow(10, ll);
 									hl = Math.pow(10, hl);
 								}
-								lineText[lineCount++] = "CI95: ".concat(DoubleFormat.toString(ll, AbstractCategoryChart.FLOAT_DIGITS)).concat("-").concat(DoubleFormat.toString(hl, AbstractCategoryChart.FLOAT_DIGITS));
+								lineText[lineCount++] = "CI95: ".concat(DoubleFormat.toString(ll, AbstractChart.FLOAT_DIGITS)).concat("-").concat(DoubleFormat.toString(hl, AbstractChart.FLOAT_DIGITS));
 							}
 						}
 						if (mVisualization.isShowValueCount()) {
@@ -515,33 +548,44 @@ public abstract class AbstractDistributionPlot extends AbstractCategoryChart {
 						int graphY2 = baseGraphRect.y+baseGraphRect.height + vOffset;
 
 						for (int line=0; line<lineCount; line++) {
-							int x,y;
-							if (mDoubleAxis == 1) {
-								x = Math.round(position[hv][cat] - textLineWidth[line]/2f);
-								if (graphY2-lav[hv][cat]-offset < textHeight + 2*gap
-								 && uav[hv][cat]-graphY1-offset > textHeight + 2*gap)
-									// top
-									y = Math.round(Math.max(graphY1+gap+0.4f*scaledFontHeight, uav[hv][cat]-offset-gap-textHeight)+(0.8f+line)*scaledFontHeight);
-								else
-									// bottom
-									y = Math.round(Math.min(graphY2-textHeight-gap+0.8f*scaledFontHeight,
-											lav[hv][cat]+gap+offset+1.0f*scaledFontHeight)+line*scaledFontHeight);
-							}
-							else {
-								if (graphX2-uav[hv][cat]-offset < textWidth + 2*gap
-								 && lav[hv][cat]-graphX1-offset > textWidth + 2*gap)
-									// left
-									x = Math.round(Math.max(graphX1+gap, lav[hv][cat]-textLineWidth[line]-gap-offset));
-								else
-									// right
-									x = Math.round(Math.min(uav[hv][cat]+gap+offset, graphX2-textLineWidth[line]-gap));
-								y = Math.round(position[hv][cat]+(0.9f-lineCount/2f)*scaledFontHeight+line*scaledFontHeight);
-							}
+							int x = statisticsX(hv, cat, textLineWidth[line], textWidth, gap, graphX1, graphX2, offset);
+							int y = statisticsY(hv, cat, line, lineCount, scaledFontHeight, textHeight, gap, graphY1, graphY2, offset);
 							g.drawString(lineText[line], x, y);
 						}
 					}
 				}
 			}
+		}
+	}
+
+	protected int statisticsX(int hv, int cat, int textLineWidth, float textWidth, float gap, float graphX1, float graphX2, float offset) {
+		if (mDoubleAxis == 1) {
+			return Math.round(mSCenter[hv][cat] - textLineWidth/2f);
+		}
+		else {
+			if (graphX2-mSUAV[hv][cat]-offset < textWidth + 2*gap
+					&& mSLAV[hv][cat]-graphX1-offset > textWidth + 2*gap)
+				// left
+				return Math.round(Math.max(graphX1+gap, mSLAV[hv][cat]-textLineWidth-gap-offset));
+			else
+				// right
+				return Math.round(Math.min(mSUAV[hv][cat]+gap+offset, graphX2-textLineWidth-gap));
+		}
+	}
+
+	protected int statisticsY(int hv, int cat, int line, int lineCount, int scaledFontHeight, float textHeight, float gap, float graphY1, float graphY2, float offset) {
+		if (mDoubleAxis == 1) {
+			if (graphY2-mSLAV[hv][cat]-offset < textHeight + 2*gap
+					&& mSUAV[hv][cat]-graphY1-offset > textHeight + 2*gap)
+				// top
+				return Math.round(Math.max(graphY1+gap+0.4f*scaledFontHeight, mSUAV[hv][cat]-offset-gap-textHeight)+(0.8f+line)*scaledFontHeight);
+			else
+				// bottom
+				return Math.round(Math.min(graphY2-textHeight-gap+0.8f*scaledFontHeight,
+						mSLAV[hv][cat]+gap+offset+1.0f*scaledFontHeight)+line*scaledFontHeight);
+		}
+		else {
+			return Math.round(mSCenter[hv][cat]+(0.9f-lineCount/2f)*scaledFontHeight+line*scaledFontHeight);
 		}
 	}
 
