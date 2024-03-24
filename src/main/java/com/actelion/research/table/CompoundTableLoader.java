@@ -1642,7 +1642,7 @@ try {
 						StringBuilder sb = new StringBuilder();
 						theLine = theReader.readLine();
 						while (theLine != null && !theLine.startsWith("</"+cDetailID)) {
-							if (!sb.isEmpty())
+							if (sb.length() != 0)
 								sb.append("\n");
 							sb.append(theLine);
 							theLine = theReader.readLine();
