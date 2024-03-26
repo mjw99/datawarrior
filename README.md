@@ -49,6 +49,11 @@ sudo dpkg -i ./target/dist/datawarrior*.deb
 
 6) Clone and build the repo
 ```
+git clone https://github.com/thsa/fxmolviewer.git
+cd fxmolviewer
+mvn clean install "-DreleaseVersion=0.0.1-SNAPSHOT"
+
+cd ..
 git clone https://github.com/mjw99/datawarrior
 cd datawarrior
 mvn clean package
