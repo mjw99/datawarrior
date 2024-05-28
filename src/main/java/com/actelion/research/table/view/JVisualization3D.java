@@ -20,9 +20,9 @@ package com.actelion.research.table.view;
 
 import com.actelion.research.chem.*;
 import com.actelion.research.chem.io.CompoundTableConstants;
+import com.actelion.research.datawarrior.DEFrame;
 import com.actelion.research.datawarrior.DataWarrior;
 import com.actelion.research.gui.generic.GenericRectangle;
-import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.gui.swing.SwingCursorHelper;
 import com.actelion.research.table.MarkerLabelDisplayer;
 import com.actelion.research.table.category.CategoryList;
@@ -157,30 +157,31 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 
 	private static final int cPrintScaling = 2;
 
-	private Frame				mParentFrame;
-	private float[][]			mMatrix,mRotation;
-	private Point3i[]			mScreenCorner;
-	private int[]				mMoleculeAxisIndex,mMoleculeAxisSize;
-	private boolean[]			mFaceHidden,mEdgeHidden,mMetaCoordsValid;
+	private final DEFrame		mParentFrame;
+	private final float[][]		mMatrix,mRotation;
+	private final Point3i[]		mScreenCorner;
+	private  final int[]		mMoleculeAxisIndex,mMoleculeAxisSize;
+	private final boolean[]		mFaceHidden,mEdgeHidden,mMetaCoordsValid;
 	private int					mScreenCenterX,mScreenCenterY,mScreenCenterOffset,
 								mCurrentFontSize3D,mStereoMode,mContentScaling,mAAFactor,
 								mThreadCount,mGraphFaceColor,mDragMode;
 	private float				mScreenZoom,mEyeOffset;
 	private boolean				mIsStereo,mDepthOrderValid,mIsAdjusting,mPopupVisible,mIsHighResolution;
-	private StereoMolecule[][]	mScaleMolecule;
-	private float[][]			mMoleculeOffsetX,mMoleculeOffsetY,mMetaBarPosition,mMetaBarColorEdge;
+	private final StereoMolecule[][]	mScaleMolecule;
+	private final float[][]		mMoleculeOffsetX,mMoleculeOffsetY,mMetaBarPosition;
+	private float[][]		    mMetaBarColorEdge;
 	private Graphics3D			mG3D,m2ndG3D;
-	private ComposedObject[]	mComposedMarker;
+	private final ComposedObject[]	mComposedMarker;
 	private Image				mNonHighlightedImage;
 	private BufferedImage		mStereoImage;
-	private Matrix3f			mNullRotationMatrix;
+	private final Matrix3f		mNullRotationMatrix;
 	private ExecutorService		mExecutor;
 	private V3DWorker[]			mV3DWorker;
-	private ArrayList<RotationListener> mRotationListenerList;
+	private final ArrayList<RotationListener> mRotationListenerList;
 
-	public JVisualization3D(Frame owner,
-							CompoundTableModel tableModel,
-							CompoundListSelectionModel selectionModel) {
+	public JVisualization3D(DEFrame owner,
+	                        CompoundTableModel tableModel,
+	                        CompoundListSelectionModel selectionModel) {
 		super(tableModel, selectionModel, 3);
 
 		mParentFrame = owner;
@@ -254,6 +255,11 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 			m2ndG3D.destroy();
 		}
 
+	public void pixelScalingUpdated(float pixelScaling) {
+
+		repaint();
+	}
+
 	public void componentResized(ComponentEvent e) {}
 	public void componentShown(ComponentEvent e) {}
 	public void componentHidden(ComponentEvent e) {}
@@ -272,12 +278,12 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		mIsHighResolution = false;
 		boolean antialiasing = !mIsAdjusting;
 		mAAFactor = antialiasing ? 2 : 1;
-		float retinaFactor = HiDPIHelper.getRetinaScaleFactor();
-		mContentScaling = (int)(retinaFactor * mAAFactor);
+		float pixelFactor = mParentFrame.getPixelFactor();
+		mContentScaling = (int)(pixelFactor * mAAFactor);
 
 		Dimension panelSize = getSize();
-		Dimension renderSize = (retinaFactor == 1f) ? panelSize
-				: new Dimension((int)(panelSize.width*retinaFactor), (int)(panelSize.height*retinaFactor));
+		Dimension renderSize = (pixelFactor == 1f) ? panelSize
+				: new Dimension((int)(panelSize.width*pixelFactor), (int)(panelSize.height*pixelFactor));
 		if (mG3D == null
 		 || mG3D.getRenderWidth() != panelSize.width*mContentScaling
 		 || mG3D.getRenderHeight() != panelSize.height*mContentScaling) {
@@ -288,7 +294,8 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 			mOffImageValid = false;
 
 		if (!mOffImageValid) {
-			mFontHeight = calculateFontSize(panelSize.width, panelSize.height, 1f, retinaFactor, false);
+			mFontHeight = calculateFontSize((int)(panelSize.width*pixelFactor),
+											(int)(panelSize.height*pixelFactor), 1f, pixelFactor, false);
 
 			Image image = paintAllOnImage(g, renderSize, antialiasing, null);
 			g.drawImage(image, 0, 0, panelSize.width, panelSize.height, this);
@@ -791,7 +798,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		int y1 = clipRect.y;
 		int x2 = x1 + clipRect.width - 1;
 		int y2 = y1 + clipRect.height - 1;
-		float f = HiDPIHelper.getRetinaScaleFactor();
+		float f = mParentFrame.getPixelFactor();
 		g.drawImage(image, (int)(x1/f), (int)(y1/f), (int)(x2/f), (int)(y2/f), x1, y1, x2, y2, null);
 		}
 
@@ -816,9 +823,9 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		int newX = mHighlightedLabelPosition.getLabelCenterOnScreenX();
 		int newY = mHighlightedLabelPosition.getLabelCenterOnScreenY();
 		float[] c = getMetaFromScreenCoordinates(newX, newY, ((LabelPosition3D)mHighlightedLabelPosition).getScreenZ());
-		float x = mAxisVisMin[0] + (c[0] + 1f) * (mAxisVisMax[0] - mAxisVisMin[0]) / 2f;
-		float y = mAxisVisMin[1] + (c[1] + 1f) * (mAxisVisMax[1] - mAxisVisMin[1]) / 2f;
-		float z = mAxisVisMin[2] + (c[2] + 1f) * (mAxisVisMax[2] - mAxisVisMin[2]) / 2f;
+		float x = (float)mAxisVisMin[0] + (c[0] + 1f) * (float)(mAxisVisMax[0] - mAxisVisMin[0]) / 2f;
+		float y = (float)mAxisVisMin[1] + (c[1] + 1f) * (float)(mAxisVisMax[1] - mAxisVisMin[1]) / 2f;
+		float z = (float)mAxisVisMin[2] + (c[2] + 1f) * (float)(mAxisVisMax[2] - mAxisVisMin[2]) / 2f;
 		mHighlightedLabelPosition.setCustom(true);
 		mHighlightedLabelPosition.setXY(x, y);
 		((LabelPosition3D)mHighlightedLabelPosition).setZ(z);
@@ -857,17 +864,17 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 
 	@Override
 	protected float getMarkerWidth(VisualizationPoint p) {
-		return getMarkerSize((VisualizationPoint3D)p);
+		return getMarkerSize(p);
 		}
 
 	@Override
 	protected float getMarkerHeight(VisualizationPoint p) {
-		return getMarkerSize((VisualizationPoint3D)p);
+		return getMarkerSize(p);
 		}
 
 	@Override
 	protected float getMarkerSize(VisualizationPoint vp) {
-		return super.getMarkerSize(vp) * ((VisualizationPoint3D)vp).zoom / HiDPIHelper.getRetinaScaleFactor();
+		return super.getMarkerSize(vp) * ((VisualizationPoint3D)vp).zoom / mParentFrame.getPixelFactor();
 		}
 
 	@Override
@@ -1179,7 +1186,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		}
 
 	@Override
-	public void updateVisibleRange(int axis, float low, float high, boolean isAdjusting) {
+	public void updateVisibleRange(int axis, double low, double high, boolean isAdjusting) {
 		if (mAxisIndex[axis] != -1)
 			invalidateMetaCoordinates(axis);
 
@@ -1239,8 +1246,8 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 					((VisualizationPoint3D)mPoint[i]).coord[axis] = 0.0f;
 				}
 			else {
-				float mid = (mAxisVisMin[axis] + mAxisVisMax[axis]) / 2;
-				float halfLen = (mAxisVisMax[axis] - mAxisVisMin[axis]) / 2;
+				float mid = (float)(mAxisVisMin[axis] + mAxisVisMax[axis]) / 2;
+				float halfLen = (float)(mAxisVisMax[axis] - mAxisVisMin[axis]) / 2;
 				for (int i=0; i<mDataPoints; i++) {
 					VisualizationPoint3D vp = (VisualizationPoint3D)mPoint[i];
 					float value = getAxisValue(vp.record, axis);
@@ -1597,8 +1604,8 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 				CategoryList<CategoryMolecule> list = (CategoryList<CategoryMolecule>)mTableModel.getNativeCategoryList(mAxisIndex[axis]);
 				float molsize = (float)size * cMolsizeFactor;
 
-				int min = Math.round(mAxisVisMin[axis] + 0.5f);
-				int max = Math.round(mAxisVisMax[axis] - 0.5f);
+				int min = Math.round((float)mAxisVisMin[axis] + 0.5f);
+				int max = Math.round((float)mAxisVisMax[axis] - 0.5f);
 				for (int i=min; i<=max; i++) {
 					if (mScaleMolecule[axis][i] == null) {
 						mScaleMolecule[axis][i] = list.get(i).getMolecule();
@@ -1803,14 +1810,14 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		if (categoryList.length == 0)
 			return;
 
-		int min = Math.round(mAxisVisMin[axis] + 0.5f);
-		int max = Math.round(mAxisVisMax[axis] - 0.5f);
+		int min = Math.round((float)mAxisVisMin[axis] + 0.5f);
+		int max = Math.round((float)mAxisVisMax[axis] - 0.5f);
 
 		if (mTableModel.isColumnTypeRangeCategory(mAxisIndex[axis]) && !USE_FULL_RANGE_CATEGORY_SCALES) {
 //		 && (mChartType != cChartTypeBars || axis != mChartInfo.barAxis)) {
 			if (max >= min) {
 				for (int i=min; i<=max+1; i++) {
-					float position = ((float)i - 0.5f - mAxisVisMin[axis]) / (mAxisVisMax[axis] - mAxisVisMin[axis]) * 2.0f - 1.0f;
+					float position = ((float)i - 0.5f - (float)mAxisVisMin[axis]) / (float)(mAxisVisMax[axis] - mAxisVisMin[axis]) * 2.0f - 1.0f;
 					int index = categoryList[Math.min(i, max)].indexOf(CompoundTableConstants.cRangeSeparation);
 					String label = (i <= max) ? categoryList[i].substring(0, index)
 							: categoryList[max].substring(index+CompoundTableConstants.cRangeSeparation.length());
@@ -1822,8 +1829,8 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 			for (int i=min; i<=max; i++) {
 				float scalePosition = (mChartType.getType() == ChartType.cTypeBars && axis == mChartInfo.getDoubleAxis() && mChartInfo.getAxisMax() != mChartInfo.getAxisMin()) ?
 						(mChartInfo.getBarBase() - mChartInfo.getAxisMin()) / (mChartInfo.getAxisMax() - mChartInfo.getAxisMin()) - 0.5f + i : i;
-				float edgePosition = (scalePosition - mAxisVisMin[axis])
-						/ (mAxisVisMax[axis] - mAxisVisMin[axis]) * 2.0f - 1.0f;
+				float edgePosition = (scalePosition - (float)mAxisVisMin[axis])
+						/ (float)(mAxisVisMax[axis] - mAxisVisMin[axis]) * 2.0f - 1.0f;
 				String label = (mScaleMolecule[axis] == null) ? categoryList[i] : null;
 				drawScaleLine(face, edge, axis, i, edgePosition, label);
 				}
@@ -1831,7 +1838,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		}
 
 	private void drawDoubleScale(int face, int edge, int axis) {
-		float axisStart,axisLength,totalRange;
+		double axisStart,axisLength,totalRange;
 
 		if (mAxisIndex[axis] == -1) {	// bar axis of bar chart
 			if (!mChartType.isSimpleMode()
@@ -1889,7 +1896,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 			  (int)(axisStart - 0.0000001 - (axisStart % gridSpacing))
 			: (int)(axisStart + 0.0000001 + gridSpacing - (axisStart % gridSpacing));
 		while ((float)theMarker < (axisStart + axisLength)) {
-			float edgePosition = ((float)theMarker-axisStart) / axisLength * 2.0f - 1.0f;
+			float edgePosition = (float)((theMarker-axisStart) / axisLength * 2.0 - 1.0);
 
 			if (mAxisIndex[axis] != -1 && mTableModel.isColumnTypeDate(mAxisIndex[axis])) {
 				String label = createDateLabel(theMarker, exponent);
@@ -1904,7 +1911,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		}
 
 	private void drawLogarithmicScale(int face, int edge, int axis) {
-		float axisStart,axisLength,totalRange;
+		double axisStart,axisLength,totalRange;
 
 		if (mAxisIndex[axis] == -1) {	// bar axis of bar chart
 			axisStart = mChartInfo.getAxisMin();
@@ -1982,7 +1989,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 				: (int)(start + 0.0000001 + gridSpacing - (start % gridSpacing));
 			while ((float)theMarker < (start + length)) {
 				float log = (float)Math.log10(theMarker) + exponent;
-				float edgePosition = (log-axisStart) / axisLength * 2.0f - 1.0f;
+				float edgePosition = (float)((log-axisStart) / axisLength * 2.0 - 1.0);
 				drawScaleLine(face, edge, axis, -1, edgePosition, DoubleFormat.toShortString(theMarker, exponent));
 				theMarker += gridSpacing;
 				}
@@ -1990,10 +1997,10 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 		}
 
 	private void drawLogarithmicScaleLine(int face, int edge, int axis, float value) {
-		float min = (mAxisIndex[axis] == -1) ? mChartInfo.getAxisMin() : mAxisVisMin[axis];
-		float max = (mAxisIndex[axis] == -1) ? mChartInfo.getAxisMax() : mAxisVisMax[axis];
+		double min = (mAxisIndex[axis] == -1) ? mChartInfo.getAxisMin() : mAxisVisMin[axis];
+		double max = (mAxisIndex[axis] == -1) ? mChartInfo.getAxisMax() : mAxisVisMax[axis];
 		if (value >= min && value <= max) {
-			float edgePosition = (value-min) / (max - min) * 2.0f - 1.0f;
+			float edgePosition = (float)((value-min) / (max - min) * 2.0 - 1.0);
 			drawScaleLine(face, edge, axis, -1, edgePosition, DoubleFormat.toString(Math.pow(10, value), 3, true));
 			}
 		}
@@ -2068,7 +2075,7 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 			}
 
 		if (mScaleMode != cScaleModeHidden) {
-			if (label != null && label.length() != 0) {
+			if (label != null && !label.isEmpty()) {
 				applyZoomToFontSize(mScreenZoom * cLocation / s2.z);
 				FontMetrics metrics = mG3D.getFont3DCurrent().fontMetrics;
 				float lx = 0.5f * (float)metrics.stringWidth(label);
@@ -2096,9 +2103,9 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 				if (mScaleMolecule[axis][index] != null) {
 					float zoom = mScreenZoom * cLocation / s2.z;
 		
-					float axisLength = mAxisVisMax[axis] - mAxisVisMin[axis];
+					double axisLength = mAxisVisMax[axis] - mAxisVisMin[axis];
 					if (axisLength > cZoomStopMolCount)
-						zoom *= cZoomStopMolCount/axisLength;
+						zoom *= cZoomStopMolCount/(float)axisLength;
 		
 					mScaleMolecule[axis][index].zoomAndRotate(zoom, 0.0f, false);
 					float l = 0.5f * zoom * cMolsizeFactor * (float)mMoleculeAxisSize[axis];
@@ -2758,9 +2765,9 @@ public class JVisualization3D extends JVisualization implements ComponentListene
 				float dataY = labelPosition.getY();
 				float dataZ = labelPosition.getZ();
 				Point3f meta = new Point3f();
-				meta.x = (mAxisVisMax[0] == mAxisVisMin[0]) ? 0f : 2f * (dataX - mAxisVisMin[0]) / (mAxisVisMax[0] - mAxisVisMin[0]) - 1f;
-				meta.y = (mAxisVisMax[1] == mAxisVisMin[1]) ? 0f : 2f * (dataY - mAxisVisMin[1]) / (mAxisVisMax[1] - mAxisVisMin[1]) - 1f;
-				meta.z = (mAxisVisMax[2] == mAxisVisMin[2]) ? 0f : 2f * (dataZ - mAxisVisMin[2]) / (mAxisVisMax[2] - mAxisVisMin[2]) - 1f;
+				meta.x = (mAxisVisMax[0] == mAxisVisMin[0]) ? 0f : 2f * (dataX - (float)mAxisVisMin[0]) / (float)(mAxisVisMax[0] - mAxisVisMin[0]) - 1f;
+				meta.y = (mAxisVisMax[1] == mAxisVisMin[1]) ? 0f : 2f * (dataY - (float)mAxisVisMin[1]) / (float)(mAxisVisMax[1] - mAxisVisMin[1]) - 1f;
+				meta.z = (mAxisVisMax[2] == mAxisVisMin[2]) ? 0f : 2f * (dataZ - (float)mAxisVisMin[2]) / (float)(mAxisVisMax[2] - mAxisVisMin[2]) - 1f;
 				Point3i screen = new Point3i();
 				screenPosition3D(meta, screen);
 
