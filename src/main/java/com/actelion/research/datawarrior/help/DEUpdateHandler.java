@@ -59,7 +59,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 
 	// IMPORTANT: When creating a new manual(!!!) installer (not an update for automatic deployment),
 	// then DataWarriorLauncher.BASE_VERSION must also be changed to match this DATAWARRIOR_VERSION!
-	public static final String DATAWARRIOR_VERSION = "v06.01.05";	// format must be v00.00.00
+	public static final String DATAWARRIOR_VERSION = "v06.02.01";	// format must be v00.00.00
 
 	private static final String PREFERENCES_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	public static final String PREFERENCES_POST_INSTALL_INFO_FAILURE_MILLIS = "post_install_info_failure_time";
@@ -72,6 +72,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	public static final int PREFERENCES_UPDATE_MODE_NEVER = 2;
 	public static final String PREFERENCES_KEY_UPDATE_PATH = "update_path";
 	public static final String PREFERENCES_KEY_HANDLED_NEWS_IDS = "handledNewsIDs";
+	public static final String PREFERENCES_KEY_TRUSTED_PLUGINS_FOR_REMOVAL = "trusted_plugins_for_removal";
 
 	private static final String PROPERTY_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	private static final String PROPERTY_BB_SERVER_1 = "bb_server_1";
@@ -394,6 +395,8 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 			FileOutputStream fileOutputStream = new FileOutputStream(tempFilePath);
 			FileChannel fileChannel = fileOutputStream.getChannel();
 			fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+			fileChannel.close();
+			fileOutputStream.close();
 			if (md5sum != null) {
 				String checksum = md5sum(tempFilePath);
 				if (!md5sum.equalsIgnoreCase(checksum)) {
@@ -406,8 +409,13 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 				}
 			}
 			try {
+				boolean success = tempFile.renameTo(finalFile);
+				if (!success)
+					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
+							"The plugin file was successfully downloaded, but DataWarrior could not change\nits extention from '.temp' to '.jar': "+tempFilePath,
+							"File Rename Failed", JOptionPane.ERROR_MESSAGE));
 				sIsUpdating = false;
-				return tempFile.renameTo(finalFile);
+				return success;
 			}
 			catch (SecurityException e) {
 				SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent,
@@ -450,30 +458,45 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 			}
 		}
 
-		// Remove outdated plugins and update those that have an updated version available.
+		// List outdated plugins and update those that have an updated version available.
+		String targetDir = prefs.get(PREFERENCES_KEY_UPDATE_PATH, null);
 		try {
-			String targetDir = prefs.get(PREFERENCES_KEY_UPDATE_PATH, null);
 			if (targetDir != null) {
 				File[] files = new File(targetDir).listFiles(file -> !file.isDirectory() && DETrustedPlugin.isValidFileName(file.getName()));
 				if (files != null) {
+					TreeSet<String> updatedPlugins = new TreeSet<>();
+					String filesForDeletion = null;
 					for (File f:files) {
 						DETrustedPlugin plugin = new DETrustedPlugin(f.getName());
 						DETrustedPlugin newPlugin = pluginMap.get(plugin.getID());
-						boolean needsUpdate = newPlugin != null && !plugin.getVersion().equals(newPlugin.getVersion());
+						boolean needsUpdate = newPlugin != null
+							 && !plugin.getVersion().equals(newPlugin.getVersion());
 						boolean deleteOutdated = newPlugin == null || needsUpdate;
 
-						if (needsUpdate && downloadJarFile(parent, newPlugin.getSourceURL(), targetDir, newPlugin.getFilename(false), newPlugin.getMD5Sum()))
-							SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "The trusted plugin '"+newPlugin.getName()+"' was successfully updated."));
+						if (needsUpdate
+						 && downloadJarFile(parent, newPlugin.getSourceURL(), targetDir, newPlugin.getFilename(false), newPlugin.getMD5Sum())
+						 && !updatedPlugins.contains(plugin.getID())) {
+							updatedPlugins.add(plugin.getID());
+							SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "The trusted plugin '" + newPlugin.getName() + "' was successfully updated\nand will be used when you launch DataWarrior next time."));
+							}
 
-						if (deleteOutdated && !f.delete())
-							SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Could not delete outdated trusted plugin file '"+f.getName()+"' from directory '"+targetDir+"'."));
+						if (deleteOutdated)
+							filesForDeletion = (filesForDeletion == null) ? f.getName() : filesForDeletion+","+f.getName();
 					}
+					if (filesForDeletion == null)
+						prefs.remove(PREFERENCES_KEY_TRUSTED_PLUGINS_FOR_REMOVAL);
+					else
+						prefs.put(PREFERENCES_KEY_TRUSTED_PLUGINS_FOR_REMOVAL, filesForDeletion);
 				}
 			}
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+			SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Could not delete outdated trusted plugin files from '"+targetDir+"'.\n"+e.getMessage()));
+		}
 
-		SwingUtilities.invokeLater(() -> parent.getDEMenuBar().updateTrustedPluginMenu(pluginMap) );
+		SwingUtilities.invokeLater(() -> {
+			parent.getDEMenuBar().updateTrustedPluginMenu(pluginMap);
+		} );
 	}
 
 	private static String md5sum(String path) {

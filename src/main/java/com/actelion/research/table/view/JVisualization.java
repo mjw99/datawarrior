@@ -351,6 +351,9 @@ public abstract class JVisualization extends JComponent
 		mLocalExclusionFlagNo = -1;
 		}
 
+	public void pixelScalingUpdated(float pixelScaling) {
+	}
+
 	public int getDimensionCount() {
 		return mDimensions;
 		}
@@ -1784,6 +1787,7 @@ public abstract class JVisualization extends JComponent
 			fontSize *= dpiFactor * retinaFactor;
 			}
 		else {
+			// retinaFactor is already in width and height!
 			float relativeViewSize = (float)Math.sqrt(width * height)
 					/ (dpiFactor * (isScreen ? HiDPIHelper.scale(cFontRefenceViewSize) : cFontRefenceViewSize));
 

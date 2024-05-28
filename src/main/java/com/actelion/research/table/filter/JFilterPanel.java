@@ -135,7 +135,7 @@ public abstract class JFilterPanel extends JPanel
 		if (isActive()) {
 			JPanel rbp = new JPanel();
 			rbp.setLayout(new FlowLayout(FlowLayout.RIGHT, 0, 5));  // 5 is the default vgap matching that of lbp
-			JButton cb = new HiDPIIconButton("closeButton.png", null, "close", 0, "square");
+			JButton cb = new HiDPIIconButton("closeButton.png", null, "close", 0);
 			cb.addActionListener(this);
 			rbp.add(cb);
 			mTitlePanel.add(rbp, "6,0");
@@ -278,15 +278,16 @@ public abstract class JFilterPanel extends JPanel
 
 	public void addFilterListener(FilterListener l) {
 		if (mListenerList == null)
-			mListenerList = new ArrayList<FilterListener>();
+			mListenerList = new ArrayList<>();
 		mListenerList.add(l);
 		}
 
 	public void removeFilterListener(FilterListener l) {
-		if (mListenerList != null)
+		if (mListenerList != null) {
 			mListenerList.remove(l);
-		if (mListenerList.size() == 0)
-			mListenerList = null;
+			if (mListenerList.isEmpty())
+				mListenerList = null;
+			}
 		}
 
 	public CompoundTableModel getTableModel() {
@@ -624,17 +625,17 @@ public abstract class JFilterPanel extends JPanel
 		if (isInverse())
 			sb.append(INVERSE_CODE);
 		if (!isEnabled()) {
-			if (sb.length() != 0)
+			if (!sb.isEmpty())
 				sb.append('\t');
 			sb.append(DISABLED_CODE);
 			}
 		String innerSettings = getInnerSettings();
 		if (innerSettings != null) {
-			if (sb.length() != 0)
+			if (!sb.isEmpty())
 				sb.append('\t');
 			sb.append(innerSettings);
 			}
-		return (sb.length() == 0 && innerSettings == null) ? null : sb.toString();
+		return (sb.isEmpty() && innerSettings == null) ? null : sb.toString();
 		}
 
 	public void applySettings(String settings, boolean suppressErrorMessages) {
