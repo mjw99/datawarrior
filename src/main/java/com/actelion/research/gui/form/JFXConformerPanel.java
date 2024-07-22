@@ -103,6 +103,10 @@ public class JFXConformerPanel extends JFXPanel {
 		return mScene;
 	}
 
+	public V3DPopupMenuController getPopupMenuController() {
+		return mController;
+	}
+
 	/**
 	 * @param controller
 	 */
