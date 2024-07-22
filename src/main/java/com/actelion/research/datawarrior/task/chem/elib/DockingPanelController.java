@@ -3,6 +3,7 @@ package com.actelion.research.datawarrior.task.chem.elib;
 import com.actelion.research.chem.*;
 import com.actelion.research.chem.conf.AtomAssembler;
 import com.actelion.research.chem.io.Mol2FileParser;
+import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
 import com.actelion.research.chem.io.pdb.parser.StructureAssembler;
 import com.actelion.research.gui.FileHelper;
@@ -14,17 +15,15 @@ import javafx.scene.paint.Color;
 import org.openmolecules.fx.surface.SurfaceMesh;
 import org.openmolecules.fx.viewer3d.*;
 import org.openmolecules.mesh.MoleculeSurfaceAlgorithm;
-import org.openmolecules.pdb.MMTFParser;
 import org.openmolecules.render.MoleculeArchitect;
 
 import javax.swing.*;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class DockingPanelController implements V3DPopupMenuController {
-	private JFXConformerPanel mConformerPanel;
+	private final JFXConformerPanel mConformerPanel;
 	private StereoMolecule mProtein,mLigand;
 
 	public DockingPanelController(JFXConformerPanel conformerPanel) {
@@ -73,6 +72,11 @@ public class DockingPanelController implements V3DPopupMenuController {
 			popup.getItems().add(itemLoadLigand);
 			popup.getItems().add(new SeparatorMenuItem());
 		}
+		if (type == V3DPopupMenuController.TYPE_VIEW) {
+			javafx.scene.control.CheckMenuItem itemShowInteractions = new javafx.scene.control.CheckMenuItem("Show Interactions");
+			itemShowInteractions.setOnAction(e -> toggleShowInteractions(itemShowInteractions));
+			popup.getItems().add(itemShowInteractions);
+		}
 	}
 
 	private void showMessageInEDT(String msg) {
@@ -83,12 +87,8 @@ public class DockingPanelController implements V3DPopupMenuController {
 		SwingUtilities.invokeLater(() -> {
 			File selectedFile = FileHelper.getFile(mConformerPanel, "Choose PDB-File", FileHelper.cFileTypePDB);
 			if (selectedFile != null) {
-				PDBFileParser parser = new PDBFileParser();
 				try {
-					Map<String, List<Molecule3D>> map = parser.parse(selectedFile).extractMols();
-					List<Molecule3D> proteins = map.get(StructureAssembler.PROTEIN_GROUP);
-					List<Molecule3D> ligands = map.get(StructureAssembler.LIGAND_GROUP);
-					addProteinAndLigand(proteins, ligands);
+					addProteinAndLigand(new PDBFileParser().parse(selectedFile));
 				}
 				catch (Exception e) {
 					showMessageInEDT(e.getMessage());
@@ -102,31 +102,50 @@ public class DockingPanelController implements V3DPopupMenuController {
 		try {
 			SwingUtilities.invokeLater(() -> {
 				String pdbCode = JOptionPane.showInputDialog(mConformerPanel, "PDB Entry Code?");
-				if (pdbCode == null || pdbCode.length() == 0)
-					return;
+				if (pdbCode != null && !pdbCode.isEmpty()) {
+					try {
+						addProteinAndLigand(new PDBFileParser().getFromPDB(pdbCode));
+					}
+					catch (Exception e) {
+						showMessageInEDT(e.getMessage());
+						e.printStackTrace();
+					}
+				}
 
-				Molecule3D[] mol = MMTFParser.getStructureFromName(pdbCode, MMTFParser.MODE_SPLIT_CHAINS);
-				if (mol != null) {
+/*  MMTF is not supported anymore from July 2nd, 2024
+				Molecule3D[] mols = MMTFParser.getStructureFromName(pdbCode, MMTFParser.MODE_SPLIT_CHAINS);
+				if (mols != null) {
 					ArrayList<Molecule3D> proteins = new ArrayList<>();
 					ArrayList<Molecule3D> ligands = new ArrayList<>();
-					for (int i=0; i<mol.length; i++) {
-						if (mol[i].getAllBonds() != 0) {
-							if (mol[i].getAllAtoms() >= 100)
-								proteins.add(mol[i]);
+					for (Molecule3D mol : mols) {
+						if (mol.getAllBonds() != 0) {
+							if (mol.getAllAtoms()>=100)
+								proteins.add(mol);
 							else
-								ligands.add(mol[i]);
+								ligands.add(mol);
 						}
 					}
 
 					addProteinAndLigand(proteins, ligands);
-				}
+				}*/
 			} );
 		}
 		catch (Exception ie) {}
 	}
 
-	private void addProteinAndLigand(List<Molecule3D> proteins, List<Molecule3D> ligands) {
-		if (proteins == null || proteins.size() == 0) {
+	private void addProteinAndLigand(PDBCoordEntryFile entryFile) {
+		Map<String, List<Molecule3D>> map = entryFile.extractMols(false);
+		List<Molecule3D> ligands = map.get(StructureAssembler.LIGAND_GROUP);
+		if (ligands == null || ligands.isEmpty()) {
+			map = entryFile.extractMols(true);
+			ligands = map.get(StructureAssembler.LIGAND_GROUP);
+			if (ligands != null && !ligands.isEmpty())
+				JOptionPane.showMessageDialog(mConformerPanel, "Only covalent ligand(s) were found and disconnected from the protein structure.");
+		}
+
+		List<Molecule3D> proteins = map.get(StructureAssembler.PROTEIN_GROUP);
+
+		if (proteins == null || proteins.isEmpty()) {
 			JOptionPane.showMessageDialog(mConformerPanel, "No proteins found in file.");
 		}
 		else {
@@ -135,7 +154,7 @@ public class DockingPanelController implements V3DPopupMenuController {
 			for (int i=1; i<proteins.size(); i++)
 				mProtein.addMolecule(proteins.get(i));
 
-			if (ligands != null && ligands.size() != 0) {
+			if (ligands != null && !ligands.isEmpty()) {
 				int index = -1;
 				if (ligands.size() == 1) {
 					index = 0;
@@ -252,5 +271,11 @@ public class DockingPanelController implements V3DPopupMenuController {
 				}
 			}
 		});
+	}
+
+	private void toggleShowInteractions(javafx.scene.control.CheckMenuItem item) {
+		V3DScene scene = mConformerPanel.getV3DScene();
+		boolean isShowInteractions = scene.isShowInteractions();
+		scene.setShowInteractions(!isShowInteractions);
 	}
 }
