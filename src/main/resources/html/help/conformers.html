@@ -248,30 +248,38 @@ catena-Poly[[(2,2'-dimethyl-4,4'-bi-1,3-thiazole-N,N')cadmium]-di-bromido]</i></
 
 <h3><a name="Superpose"></a>Superposing Conformers</h3>
 
-<p>If the binding conformer of a protein's ligand is known or at least suspected, then this
-is often used to search compound collections for similar conformers regarding shape and
-pharmacophore features. With <span class="keyword">DataWarrior</span> you can perform such
-a virtual screening in two steps: First you <a href="help/conformers.html#Generate">generate
-conformers</a> from any of the molecules to be screened.
-Then you try superposing these conformers onto the query conformer and assign a score to each
-molecule representing the best conformer's degree of shape and pharmacophore feature overlap.
-For this purpose <span class="keyword">DataWarrior</span> uses an algorithm called
-<a href="help/phesa.html">PheSA (Pharmacophore enhanced shape alignment)</a>, which uses
+<p>If the binding conformer of a protein's ligand is known or at least suspected, then its
+3D-structure is often used to search compound collections for similar conformers regarding shape
+and pharmacophore features. With <span class="keyword">DataWarrior</span> you can perform such
+a virtual screening in two different ways, either by aligning the query conformer to a dataset
+with rigid, pre-computed conformers, or by generating conformers on the fly and optimizing their
+torsion angles to maximize query overlap while retaining low energy torsion angles at the same time.</p>
+In either of the two options you end up with conformers best-possible aligned to your query
+conformer and with a score that describes how much your aligned conformers overlap and how well
+any pharmacophiric features match. In fact, you get tree scores, one for the overlap, one for
+te pharmacophore match and one that summarizes both. For aligning and scoring
+<span class="keyword">DataWarrior</span> uses an algorithm called
+<a href="help/phesa.html">PheSA</a> (Pharmacophore enhanced shape alignment), which uses
 Gaussian functions to calculate and optimize the shared volume of two molecules' conformers
-while considering pharmacophore feature overlay at the same time.</p>
+while considering pharmacophore feature overlay at the same time. The PheSA algorithm was
+engineered by Joel Wahl and is described in <a href="https://pubs.acs.org/doi/10.1021/acs.jcim.4c00516">
+https://pubs.acs.org/doi/10.1021/acs.jcim.4c00516</a></p>
 
-<p>If your dataset contains at least one column with one or multiple conformers, then you may
-configure the superpositioning task with <span class="menu">Superpose Conformers...</span> from the
-<span class="menu">Chemistry</span> menu. A simple dialog opens, where you select the
-column containing the conformers. You also need to specify the query conformer, which shall be
+<p><b>Rigid Alignment:</b> If your dataset doesn't contain at least one column with one or multiple
+conformers, then you need to generate conformers for any of the molecules to be screened as
+described in <a href="help/conformers.html#Generate">generate conformers</a>. Otherwise, or afterward
+you configure the superpositioning task with <span class="menu">Superpose Conformers->Rigid...</span> from the
+<span class="menu">Chemistry</span> menu. A simple dialog opens, where you first select the
+column containing your conformers. You also need to specify the query conformer, which shall be
 PheSA-matched against all conformers.
-This is done with a right mouse click in the blue initially empty area. A popup menu lets
+This is done with a right mouse click within the initially empty area. A popup menu lets
 you import a molecule from either a molfile, mol2-file, the ligand from a PDB-file or from the PDB-database.
 Alternatively, you can also paste in a structure. If the clipboard contains a molecule without
 3D-atom coordinates, then a low-energy conformer is created on the fly. Of course, in this case,
-the conformer is not a perfect query, because it is not necessarily close to any binding conformation.</p>
+the conformer is not a perfect query, because it is not necessarily close to any binding conformation.
+Don't select <span class="menu">Use Flexible Alignment</span>.</p>
 
-<p align="center"><img src="help/img/conf/superposeDialog.jpeg" width="465" height="318"></p>
+<p align="center"><img src="help/img/conf/superposeDialog.jpeg" width="333" height="280"></p>
 <p><center><i>Dialog configured to superpose all energy-minimized 3D-Structures of a data set
 with a given conformer of the CNS-drug Alpidem.</i></center></p>
 
@@ -293,9 +301,48 @@ visible with a right mouse click on the table header and choosing <span class="m
 
 <p>If you had defined multiple query structures in the dialog, then you would have received one new
 'PheSA Score' column for each query structure. You would also have got distinct new columns for the
-best matching isomers and 3D-superpositions.</p><br>
+best matching isomers and 3D-superpositions.</p>
+
+<p><b>Flexible Alignment:</b> To flexibly align all molecules of an open <span class="keyword">DataWarrior</span>
+file with a given 3D-query molecule (conformer), your <span class="keyword">DataWarrior</span> file
+doesn't need to contain molecule coordinates in 3D. Instead, an initial conformer is calculated on the fly 
+from every molecule, which is then optimized in a step-wise fashion to optimally overlap with the query structure. 
+Typically, flexible PheSA alignment produces better matches than the rigid variant of the algorithm, 
+because in most cases even large conformer sets don't contain perfectly matching conformers, especially, 
+if a molecule has a high flexibility due to many rotatable bonds. In order to flexibly align your molecules 
+with a given conformer choose <span class="menu">Superpose Conformers->Flexible...</span> from the menu and 
+continue as described above.</p>
+<br>
 
 <h3><a name="Docking"></a>Protein-Ligand Docking</h3>
+
+<p><span class="keyword">DataWarrior</span> uses a state-of-the-art docking algorithm that is about to be
+published. More details will be described here later...</p>
+
+<p>In order to dock the molecules of an open <span class="keyword">DataWarrior</span> window into a specific
+protein cavity choose <span class="menu">Dock Structures Into Protein Cavity...</span> from the
+<span class="menu">Chemistry</span> menu. A dialog opens. Now define a protein cavity from the popup menu
+that appears after a right mouse click into the protein area of the open dialog. Typically, you will open
+a local PDB file or specify a PDB-Code to retrieve protein structure from the PDB-database. The PDB-entry
+must contain at least one ligand molecule. In case of multiple ligand molecules you need to select one
+by selecting its molecular formula. Then <span class="keyword">DataWarrior</span> crops all parts of the
+protein that are more than 10 Angstrom away from the ligand and are not needed for the docking procedure.
+It also calculates the Conolly surface inside the cavity and starts docking your molecules as potential
+ligands into the cavity. This may take a few hours for thousands of molecules.</p>
+
+<p align="center"><img src="help/img/conf/dockingResult.jpeg" width="532" height="363"></p>
+<p><center><i>Docked molecule into complement factor B protease domain, PDB-ID: 6RAV).</i></center></p>
+
+<p>Once the docking calculation has finished, the <span class="keyword">DataWarrior</span> table contains
+two new columns, a docking score and a docked structure. The latter column's structures may differ slightly
+from the original structure column, because basic acidic atoms may be (de-)protonated and small
+unconnected fragments are removed. Another invisible column containes the 3D-atom coordinates of the docked
+pose. This column also knows about the natural ligand and the protein cavity. A detail view display the
+cavity with the docked structure. Optionally, the cavity surface, major interactions, and the natural ligand
+can be shown. If you have a device that is capable of displaying stereoscopic content, you may open a daughter
+view that mirrors the detail view for real 3D-perception. Interactions are calculated and shown according to
+S. Salentin, S. Schreiber, V. J. Haupt, M. F. Adasme, M. Schroeder; <i>PLIP: fully automated protein–ligand
+interaction profiler</i>; Nucleic Acids Research, 2015 1; doi: 10.1093/nar/gkv315</p>
 
 <br>
 

@@ -1,8 +1,9 @@
-package com.actelion.research.gui.form;
+package com.actelion.research.datawarrior.fx;
 
 import com.actelion.research.chem.Coordinates;
 import com.actelion.research.chem.Molecule;
 import com.actelion.research.chem.StereoMolecule;
+import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.gui.hidpi.HiDPIIcon;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
@@ -18,6 +19,8 @@ import org.openmolecules.fx.viewer3d.*;
 import org.openmolecules.mesh.MoleculeSurfaceAlgorithm;
 import org.openmolecules.render.MoleculeArchitect;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,37 +34,46 @@ import java.util.EnumSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 
-public class JFXConformerPanel extends JFXPanel {
+public class JFXMolViewerPanel extends JFXPanel {
 	public static final double CAVITY_CROP_DISTANCE = 10.0;
 	private static boolean sURLStreamHandlerSet = false;
-
-	private final Color REFERENCE_MOLECULE_COLOR = Color.INDIANRED;
-	private final Color OVERLAY_MOLECULE_COLOR = Color.LIGHTGRAY;
-	private final Color SINGLE_CONFORMER_COLOR = Color.GRAY.darker(); // for some reason, DARKGREY is lighter than GREY
+	private static final String EDIT_MESSAGE = "<right mouse click to add content>";
+	private static final Color DEFAULT_CAVITY_MOL_COLOR = Color.LIGHTGRAY;
+	private static final Color DEFAULT_REFMOL_COLOR = Color.INDIANRED;
+	private static final Color DEFAULT_OVERLAY_MOL_COLOR = Color.LIGHTGRAY;
+	private static final Color DEFAULT_SINGLE_CONF_COLOR = Color.GRAY.darker(); // for some reason, DARKGREY is lighter than GREY
 
 	private V3DScene mScene;
-	private V3DMolecule mCavityMol, mOverlayMol;
+	private volatile V3DMolecule mCavityMol,mOverlayMol,mRefMol,mSingleConformer;
 	private V3DPopupMenuController mController;
 	private FutureTask<Object> mConstructionTask;
 	private volatile int mCurrentUpdateID;
-	private boolean mAdaptToLookAndFeelChanges;
+	private boolean mAdaptToLookAndFeelChanges,mIsEditable;
+	private Color mCavityMolColor,mRefMolColor,mOverlayMolColor,mSingleConformerColor;
 	private java.awt.Color mSceneBackground, mLookAndFeelSpotColor,
 			mMenuItemBackground,mMenuItemForeground,/*mMenuItemSelectionBackground,*/mMenuItemSelectionForeground;
 
-	public JFXConformerPanel(boolean withSidePanel) {
+	public JFXMolViewerPanel(boolean withSidePanel) {
 		this(withSidePanel, 512, 384, V3DScene.CONFORMER_VIEW_MODE);
 	}
 
-	public JFXConformerPanel(boolean withSidePanel, EnumSet<V3DScene.ViewerSettings> settings) {
+	public JFXMolViewerPanel(boolean withSidePanel, EnumSet<V3DScene.ViewerSettings> settings) {
 		this(withSidePanel, 512, 384, settings);
 	}
 
-	public JFXConformerPanel(boolean withSidePanel, int width, int height, EnumSet<V3DScene.ViewerSettings> settings) {
+	public JFXMolViewerPanel(boolean withSidePanel, int width, int height, EnumSet<V3DScene.ViewerSettings> settings) {
 		super();
 		if (!sURLStreamHandlerSet) {
 			URL.setURLStreamHandlerFactory(new StringURLStreamHandlerFactory());
 			sURLStreamHandlerSet = true;
 		}
+
+		mIsEditable = settings.contains(V3DScene.ViewerSettings.EDITING);
+
+		mCavityMolColor = DEFAULT_CAVITY_MOL_COLOR;
+		mOverlayMolColor = DEFAULT_OVERLAY_MOL_COLOR;
+		mRefMolColor = DEFAULT_REFMOL_COLOR;
+		mSingleConformerColor = null;
 
 		collectLookAndFeelColors(); // we have to do this on the EDT
 
@@ -85,6 +97,72 @@ public class JFXConformerPanel extends JFXPanel {
 		}, null);
 		Platform.runLater(mConstructionTask);
 	}
+
+	public String getOverlayMolColor() {
+		Color color = (mOverlayMol != null) ? mOverlayMol.getColor() : mOverlayMolColor;
+		return color == null ? "none" : toRGBString(color);
+	}
+
+	public String getCavityMolColor() {
+		Color color = (mCavityMol != null) ? mCavityMol.getColor() : mCavityMolColor;
+		return color == null ? "none" : toRGBString(color);
+	}
+
+	public String getRefMolColor() {
+		Color color = (mRefMol != null) ? mRefMol.getColor() : mRefMolColor;
+		return color == null ? "none" : toRGBString(color);
+	}
+
+	public String getSingleConformerColor() {
+		Color color = (mSingleConformer != null) ? mSingleConformer.getColor() : mSingleConformerColor;
+		return color == null ? "none" : toRGBString(color);
+	}
+
+	public void setOverlayMolColor(String color) {
+		mOverlayMolColor = color.equals("none") ? null : Color.valueOf(color);
+		Platform.runLater(() -> { if (mOverlayMol != null) mOverlayMol.setColor(mOverlayMolColor); } );
+	}
+
+	public void setCavityMolColor(String color) {
+		mCavityMolColor = color.equals("none") ? null : Color.valueOf(color);
+		Platform.runLater(() -> { if (mCavityMol != null) mCavityMol.setColor(mCavityMolColor); } );
+	}
+
+	public void setRefMolColor(String color) {
+		mRefMolColor = color.equals("none") ? null : Color.valueOf(color);
+		Platform.runLater(() -> { if (mRefMol != null) mRefMol.setColor(mRefMolColor); } );
+	}
+
+	public void setSingleConformerColor(String color) {
+		mSingleConformerColor = color.equals("none") ? null : Color.valueOf(color);
+		Platform.runLater(() -> { if (mSingleConformer != null) mSingleConformer.setColor(mSingleConformerColor); } );
+	}
+
+	private String toRGBString(Color color) {
+		return String.format( "#%02X%02X%02X",
+				Math.min(255, (int)(color.getRed() * 256)),
+				Math.min(255, (int)(color.getGreen() * 256)),
+				Math.min(255, (int)(color.getBlue() * 256)));
+	}
+
+	@Override
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+
+		if (mIsEditable
+		 && (mScene == null || mScene.getWorld().getGroups().isEmpty())) {
+			Dimension theSize = getSize();
+			Insets insets = getInsets();
+			theSize.width -= insets.left + insets.right;
+			theSize.height -= insets.top + insets.bottom;
+
+			g.setFont(g.getFont().deriveFont(Font.PLAIN, HiDPIHelper.scale(10)));
+			FontMetrics metrics = g.getFontMetrics();
+			Rectangle2D bounds = metrics.getStringBounds(EDIT_MESSAGE, g);
+			g.drawString(EDIT_MESSAGE, (int)(insets.left+theSize.width-bounds.getWidth())/2,
+					(insets.top+theSize.height-metrics.getHeight())/2+metrics.getAscent());
+			}
+		}
 
 	/**
 	 * This waits for the constructor's with runLater() deferred initialization to complete
@@ -259,33 +337,43 @@ public class JFXConformerPanel extends JFXPanel {
 		});
 	}
 
+	/**
+	 * Note: Don't use this, if this 3D-View can be edited by the user, because editings
+	 * are not reflected by the locally cached variable mOverlayMol. Use getMolecules()
+	 * instead.
+	 * @return the molecule originally passed with setOverlayMolecule()
+	 */
 	public StereoMolecule getOverlayMolecule() {
 		return mOverlayMol == null ? null : mOverlayMol.getMolecule();
 	}
 
 	/**
 	 * Adds the given small molecule into the scene.
-	 *
 	 * @param mol
 	 */
 	public void setOverlayMolecule(StereoMolecule mol) {
 		Platform.runLater(() -> {
+			if (mOverlayMol != null) {
+				mOverlayMolColor = mOverlayMol.getColor();
+				mScene.delete(mOverlayMol);
+				mOverlayMol = null;
+			}
 			if (mol != null) {
 				mOverlayMol = new V3DMolecule(mol, 0, V3DMolecule.MoleculeRole.LIGAND);
-				mOverlayMol.setColor(OVERLAY_MOLECULE_COLOR);
-				mScene.addMolecule(mOverlayMol);
-			} else if (mOverlayMol != null) {
-				mScene.delete(mOverlayMol);
+				mOverlayMol.setColor(mOverlayMolColor);
+				mScene.addMolecule(mOverlayMol, false);
 			}
 		});
 	}
 
 	/**
-	 * Adds the given cropped protein cavity and its surface into the scene. If the natural ligand is given, then
-	 * the ligand atom coordinates are used to determine the cavity surface in the ligand's vicinity.
-	 *
+	 * Adds the given, typically cropped, protein cavity into the scene using color LIGHT_GRAY.
+	 * If a ligand is given, all cavity atoms being in a distance of about CAVITY_CROP_DISTANCE
+	 * of any ligad atom are marked. Then, a surface for the protein is generated, which covers
+	 * unmarked atoms only.<br>
+	 * NOTE: The ligand structure is not added to the scene!
 	 * @param cavity
-	 * @param ligand
+	 * @param ligand may be null
 	 * @param optimizeView whether the view shall be centered after adding cavity
 	 */
 	public void setProteinCavity(StereoMolecule cavity, StereoMolecule ligand, boolean optimizeView) {
@@ -293,17 +381,19 @@ public class JFXConformerPanel extends JFXPanel {
 			if (ligand != null)
 				markAtomsInCropDistance(cavity, ligand, calculateCOG(ligand));
 
-			mCavityMol = new V3DMolecule(cavity, MoleculeArchitect.ConstructionMode.WIRES, 0, V3DMolecule.MoleculeRole.MACROMOLECULE);
-			mCavityMol.setColor(Color.LIGHTGRAY);
+			mCavityMol = new V3DMolecule(cavity, MoleculeArchitect.CONSTRUCTION_MODE_WIRES, 0, V3DMolecule.MoleculeRole.MACROMOLECULE);
+			mCavityMol.setColor(mCavityMolColor);
 			mCavityMol.setSurfaceMode(MoleculeSurfaceAlgorithm.CONNOLLY, V3DMolecule.SurfaceMode.FILLED);
 			mCavityMol.setSurfaceColorMode(MoleculeSurfaceAlgorithm.CONNOLLY, SurfaceMesh.SURFACE_COLOR_ATOMIC_NOS);
 
-			mScene.addMolecule(mCavityMol);
+			mScene.addMolecule(mCavityMol, false);
 
 			mCavityMol.getMolecule().removeAtomMarkers();
 
 			if (optimizeView)
 				mScene.optimizeView();
+
+			mScene.setShowInteractions(true);
 		});
 	}
 
@@ -322,7 +412,7 @@ public class JFXConformerPanel extends JFXPanel {
 		for (int i = 0; i<ligand.getAllAtoms(); i++)
 			maxDistance = Math.max(maxDistance, ligandCOG.distance(ligand.getCoordinates(i)));
 
-		double cropDistance = JFXConformerPanel.CAVITY_CROP_DISTANCE;
+		double cropDistance = JFXMolViewerPanel.CAVITY_CROP_DISTANCE;
 		maxDistance += cropDistance;
 
 		// mark all protein atoms within crop distance
@@ -391,7 +481,7 @@ public class JFXConformerPanel extends JFXPanel {
 		for (int i = 0; i<ligand.getAllAtoms(); i++)
 			maxDistance = Math.max(maxDistance, ligandCOG.distance(ligand.getCoordinates(i)));
 
-		double markDistance = JFXConformerPanel.CAVITY_CROP_DISTANCE - 3.2;
+		double markDistance = JFXMolViewerPanel.CAVITY_CROP_DISTANCE - 3.2;
 		maxDistance += markDistance;
 
 		for (int i = 0; i<cavity.getAllAtoms(); i++)
@@ -418,14 +508,15 @@ public class JFXConformerPanel extends JFXPanel {
 		Platform.runLater(() -> addMoleculeNow(mol, color, centerOfRotation, false));
 	}
 
-	private void addMoleculeNow(StereoMolecule mol, Color color, Point3D centerOfRotation, boolean showTorsionStrain) {
+	private V3DMolecule addMoleculeNow(StereoMolecule mol, Color color, Point3D centerOfRotation, boolean showTorsionStrain) {
 		V3DMolecule fxmol = new V3DMolecule(mol);
-		fxmol.setColor(color == null ? SINGLE_CONFORMER_COLOR : color);
+		fxmol.setColor(color);
 		fxmol.setSurfaceColorMode(MoleculeSurfaceAlgorithm.CONNOLLY, SurfaceMesh.SURFACE_COLOR_INHERIT);
 		fxmol.setCenterOfRotation(centerOfRotation);
 		if (showTorsionStrain)
 			fxmol.addTorsionStrainVisualization();
-		mScene.addMolecule(fxmol);
+		mScene.addMolecule(fxmol, false);
+		return fxmol;
 	}
 
 	/**
@@ -437,26 +528,34 @@ public class JFXConformerPanel extends JFXPanel {
 	 * Unless there is a protein cavity or an overlay molecule, it finally optimizes the view.
 	 *
 	 * @param conformers   multiple or one conformer, which may also be a ligand structure
-	 * @param rowID        is used for reproducible color assignment if there is one conformer only; use -1 for atomicNo based colors
 	 * @param refConformer optional second conformer or ligand structure for comparison (not the natural ligand or PheSA query)
 	 */
-	public void updateConformers(StereoMolecule[] conformers, int rowID, StereoMolecule refConformer) {
-		mCurrentUpdateID++;
-		final int updateID = mCurrentUpdateID;
+	public void updateConformers(StereoMolecule[] conformers, StereoMolecule refConformer) {
+		final int updateID = ++mCurrentUpdateID;
 		Platform.runLater(() -> {
+			// store current colors of refmol and single conf for later use
+			if (mRefMol != null)
+				mRefMolColor = mRefMol.getColor();
+			mRefMol = null;
+
+			if (mSingleConformer != null)
+				mSingleConformerColor = mSingleConformer.getColor();
+			mSingleConformer = null;
+
 			boolean isTorsionStrainVisible = false;
 			for (V3DMolecule fxmol : mScene.getMolsInScene())
 				if (fxmol != mOverlayMol
-						&& fxmol != mCavityMol
-						&& updateID == mCurrentUpdateID) {
+				 && fxmol != mCavityMol
+				 && updateID == mCurrentUpdateID) {
 					isTorsionStrainVisible |= (fxmol.getTorsionStrainVis() != null);
 					mScene.delete(fxmol);
 				}
 
 			if (conformers != null) {
 				if (conformers.length == 1) {
-					if (updateID == mCurrentUpdateID)
-						addMoleculeNow(conformers[0], CarbonAtomColorPalette.getColor(rowID), null, isTorsionStrainVisible);
+					if (updateID == mCurrentUpdateID) {
+						mSingleConformer = addMoleculeNow(conformers[0], mSingleConformerColor, null, isTorsionStrainVisible);
+					}
 				} else {
 					Point3D cor = new Point3D(0, 0, 0);
 					for (int i = 0; i<conformers.length && updateID == mCurrentUpdateID; i++) {
@@ -466,8 +565,9 @@ public class JFXConformerPanel extends JFXPanel {
 				}
 			}
 
-			if (refConformer != null && updateID == mCurrentUpdateID)
-				addMoleculeNow(refConformer, REFERENCE_MOLECULE_COLOR, null, isTorsionStrainVisible);
+			if (refConformer != null && updateID == mCurrentUpdateID) {
+				mRefMol = addMoleculeNow(refConformer, mRefMolColor, null, isTorsionStrainVisible);
+			}
 
 			if ((conformers != null || refConformer != null) && mOverlayMol == null && mCavityMol == null && updateID == mCurrentUpdateID)
 				mScene.optimizeView();
@@ -482,7 +582,8 @@ public class JFXConformerPanel extends JFXPanel {
 		Platform.runLater(() -> {
 			for (Node node : mScene.getWorld().getChildren())
 				if (node instanceof V3DMolecule
-						&& role == null || ((V3DMolecule)node).getRole() == role)
+				 && (role == null
+				  || role == ((V3DMolecule)node).getRole()))
 					conformerList.add(((V3DMolecule)node).getMolecule());
 			latch.countDown();
 		});
@@ -491,6 +592,18 @@ public class JFXConformerPanel extends JFXPanel {
 			latch.await();
 		} catch (InterruptedException ie) {
 		}
+		return conformerList;
+	}
+
+	public ArrayList<StereoMolecule> getMoleculesInFXThread(V3DMolecule.MoleculeRole role) {
+		final ArrayList<StereoMolecule> conformerList = new ArrayList<>();
+
+		for (Node node : mScene.getWorld().getChildren())
+			if (node instanceof V3DMolecule
+			 && (role == null
+			  || role == ((V3DMolecule)node).getRole()))
+				conformerList.add(((V3DMolecule)node).getMolecule());
+
 		return conformerList;
 	}
 
@@ -516,7 +629,7 @@ public class JFXConformerPanel extends JFXPanel {
 	private static class StringURLConnection extends URLConnection {
 		private static String sCSS;
 
-		private static void updateCSS(JFXConformerPanel conformerPanel, final String css) {
+		private static void updateCSS(JFXMolViewerPanel conformerPanel, final String css) {
 			sCSS = css;
 //			Platform.runLater(() ->
 					conformerPanel.getScene().getStylesheets().setAll("internal:"+System.nanoTime()+"stylesheet.css");
@@ -540,10 +653,10 @@ public class JFXConformerPanel extends JFXPanel {
 		URLStreamHandler streamHandler = new URLStreamHandler() {
 			@Override
 			protected URLConnection openConnection(URL url) throws IOException {
-				if (url.toString().toLowerCase().endsWith(".css")) {
-					return new StringURLConnection(url);
-				}
-				throw new FileNotFoundException();
+			if (url.toString().toLowerCase().endsWith(".css")) {
+				return new StringURLConnection(url);
+			}
+			throw new FileNotFoundException();
 			}
 		};
 

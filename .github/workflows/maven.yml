@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        java: [17]
+        java: [21]
         os: [ubuntu-22.04, windows-2022]
     name: Java ${{ matrix.java }} on ${{ matrix.os }}
     steps:
