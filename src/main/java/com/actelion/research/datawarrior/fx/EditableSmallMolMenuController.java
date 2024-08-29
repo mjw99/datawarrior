@@ -1,15 +1,15 @@
-package com.actelion.research.datawarrior.task.chem.elib;
+package com.actelion.research.datawarrior.fx;
 
 import com.actelion.research.chem.MolecularFormula;
 import com.actelion.research.chem.Molecule3D;
 import com.actelion.research.chem.MolfileParser;
 import com.actelion.research.chem.StereoMolecule;
+import com.actelion.research.chem.conf.AtomAssembler;
 import com.actelion.research.chem.io.Mol2FileParser;
 import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
 import com.actelion.research.chem.io.pdb.parser.StructureAssembler;
 import com.actelion.research.gui.FileHelper;
-import com.actelion.research.gui.form.JFXConformerPanel;
 import javafx.application.Platform;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.SeparatorMenuItem;
@@ -24,12 +24,15 @@ import java.awt.*;
 import java.io.File;
 import java.util.List;
 
-public class ConformerViewController implements V3DPopupMenuController {
-	private Frame mParentFrame;
-	private JFXConformerPanel mConformerPanel;
+public class EditableSmallMolMenuController implements V3DPopupMenuController {
+	private final Frame mParentFrame;
+	private final JFXMolViewerPanel mConformerPanel;
 	private volatile String mPDBCode;
 
-	public ConformerViewController(Frame owner, JFXConformerPanel conformerPanel) {
+	/**
+	 * This controller adds menu items to change and add  conformers to the associated 3D-view.
+	 */
+	public EditableSmallMolMenuController(Frame owner, JFXMolViewerPanel conformerPanel) {
 		mParentFrame = owner;
 		mConformerPanel = conformerPanel;
 		}
@@ -57,6 +60,11 @@ public class ConformerViewController implements V3DPopupMenuController {
 			}
 		}
 
+	@Override
+	public void markCropDistanceForSurface(V3DMolecule fxmol, int type, V3DMolecule.SurfaceMode mode) {
+
+	}
+
 	private void loadMolecule() {
 		SwingUtilities.invokeLater(() -> {
 			int fileTypes = FileHelper.cFileTypeMOL | FileHelper.cFileTypeMOL2;
@@ -79,7 +87,7 @@ public class ConformerViewController implements V3DPopupMenuController {
 					if (mol != null && mol.getAllAtoms() != 0) {
 						mol.center();
 						V3DScene scene = mConformerPanel.getV3DScene();
-						scene.addMolecule(new V3DMolecule(mol));
+						scene.addMolecule(new V3DMolecule(mol), false);
 						scene.optimizeView();
 						}
 					});
@@ -162,7 +170,7 @@ public class ConformerViewController implements V3DPopupMenuController {
 				PDBFileParser parser = new PDBFileParser();
 				try {
 					PDBCoordEntryFile entryFile = (mPDBCode != null) ? parser.getFromPDB(mPDBCode) : parser.parse(pdbFile);
-					List<Molecule3D> ligands = entryFile.extractMols().get(StructureAssembler.LIGAND_GROUP);
+					List<Molecule3D> ligands = entryFile.extractMols(false).get(StructureAssembler.LIGAND_GROUP);
 
 					if (ligands == null || ligands.isEmpty()) {
 						ligands = entryFile.extractMols(true).get(StructureAssembler.LIGAND_GROUP);
@@ -192,8 +200,8 @@ public class ConformerViewController implements V3DPopupMenuController {
 							Platform.runLater(() -> {
 								V3DScene scene = mConformerPanel.getV3DScene();
 
-								ligand.center();
-								scene.addMolecule(new V3DMolecule(ligand, MoleculeArchitect.ConstructionMode.BALL_AND_STICKS, MoleculeArchitect.HydrogenMode.ALL, 0, V3DMolecule.MoleculeRole.LIGAND, true));
+								new AtomAssembler(ligand).addImplicitHydrogens();
+								scene.addMolecule(new V3DMolecule(ligand, MoleculeArchitect.CONSTRUCTION_MODE_STICKS, MoleculeArchitect.HydrogenMode.ALL, 0, V3DMolecule.MoleculeRole.LIGAND, true), false);
 
 								scene.optimizeView();
 							});
@@ -208,43 +216,4 @@ public class ConformerViewController implements V3DPopupMenuController {
 			}
 		catch (Exception ie) {}
 		}
-
-/*	private void loadPDBLigand() {      MMTF is not supported anymore from July 2nd, 2024
-		mPDBCode = null;
-		try {
-			SwingUtilities.invokeLater(() -> {
-				mPDBCode = JOptionPane.showInputDialog(mConformerPanel, "PDB Entry Code?");
-				if (mPDBCode == null || mPDBCode.isEmpty())
-					return;
-
-				Molecule3D[] mol = MMTFParser.getStructureFromName(mPDBCode, MMTFParser.MODE_SPLIT_CHAINS);
-				if (mol == null)
-					return;
-
-				MMTFParser.centerMolecules(mol);
-
-				Platform.runLater(() -> {
-					V3DScene scene = mConformerPanel.getV3DScene();
-
-					int count = 0;
-					for (int i=0; i<mol.length; i++) {
-						if (mol[i].getAllBonds() != 0 && mol[i].getAllAtoms() < 100) {
-							if (mol.length == 1)
-								mol[0].center();
-							scene.addMolecule(new V3DMolecule(mol[i], MoleculeArchitect.ConstructionMode.BALL_AND_STICKS, MoleculeArchitect.HydrogenMode.ALL, 0, V3DMolecule.MoleculeRole.LIGAND, true));
-							count++;
-							}
-						}
-
-					if (count == 0)
-						showMessageInEDT("No ligand structure found in PDB entry.");
-					else if (count > 1)
-						showMessageInEDT("Multiple ligand structures found.\nRemove all but one for proper results.");
-
-					scene.optimizeView();
-					});
-				});
-			}
-		catch (Exception ie) {}
-		} */
 	}

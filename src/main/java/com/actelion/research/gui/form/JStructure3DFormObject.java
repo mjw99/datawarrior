@@ -21,6 +21,7 @@ package com.actelion.research.gui.form;
 import com.actelion.research.chem.IDCodeParser;
 import com.actelion.research.chem.IDCodeParserWithoutCoordinateInvention;
 import com.actelion.research.chem.StereoMolecule;
+import com.actelion.research.datawarrior.fx.JFXMolViewerPanel;
 import com.actelion.research.util.ArrayUtils;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
@@ -42,45 +43,49 @@ public class JStructure3DFormObject extends AbstractFormObject {
 
 	public JStructure3DFormObject(String key, String type) {
 		super(key, type);
-		mComponent = new JFXConformerPanel(false, V3DScene.CONFORMER_VIEW_MODE);
-		((JFXConformerPanel)mComponent).adaptToLookAndFeelChanges();
+		mComponent = new JFXMolViewerPanel(false, V3DScene.CONFORMER_VIEW_MODE);
+		((JFXMolViewerPanel)mComponent).adaptToLookAndFeelChanges();
 		}
 
+	public V3DPopupMenuController getPopupMenuController() {
+		return ((JFXMolViewerPanel)mComponent).getPopupMenuController();
+	}
+
 	public void setPopupMenuController(V3DPopupMenuController controller) {
-		((JFXConformerPanel)mComponent).setPopupMenuController(controller);
+		((JFXMolViewerPanel)mComponent).setPopupMenuController(controller);
 	}
 
 	public void setReferenceMolecule(StereoMolecule refMol) {
-		((JFXConformerPanel)mComponent).setOverlayMolecule(refMol);
+		((JFXMolViewerPanel)mComponent).setOverlayMolecule(refMol);
 		mOverlayMol = refMol;
 		}
 
 	public void setCavityMolecule(StereoMolecule cavityMol, StereoMolecule ligandMol) {
-		((JFXConformerPanel)mComponent).setProteinCavity(cavityMol, ligandMol, true);
-		((JFXConformerPanel)mComponent).setOverlayMolecule(ligandMol);
+		((JFXMolViewerPanel)mComponent).setProteinCavity(cavityMol, ligandMol, true);
+		((JFXMolViewerPanel)mComponent).setOverlayMolecule(ligandMol);
 		mCavityMol = cavityMol;
 		mLigandMol = ligandMol;
 		}
 
 	@Override
 	public Object getData() {
-		ArrayList<StereoMolecule> molList = ((JFXConformerPanel)mComponent).getMolecules(null);
+		ArrayList<StereoMolecule> molList = ((JFXMolViewerPanel)mComponent).getMolecules(null);
 		return (molList.isEmpty()) ? null : molList.get(0);
 		}
 
     @Override
 	public void setData(Object data) {
 		if (data == null) {
-			((JFXConformerPanel)mComponent).clear();
+			((JFXMolViewerPanel)mComponent).clear();
 			}
 		else if (data instanceof StereoMolecule) {
-			((JFXConformerPanel)mComponent).clear();
-			((JFXConformerPanel)mComponent).addMolecule((StereoMolecule)data, null, null);
+			((JFXMolViewerPanel)mComponent).clear();
+			((JFXMolViewerPanel)mComponent).addMolecule((StereoMolecule)data, null, null);
 			if (mCavityMol == null)
-				((JFXConformerPanel)mComponent).optimizeView();
+				((JFXMolViewerPanel)mComponent).optimizeView();
 			}
 		else if (data instanceof String) {
-			((JFXConformerPanel)mComponent).clear();
+			((JFXMolViewerPanel)mComponent).clear();
 
 			byte[] idcode = ((String)data).getBytes();
 			int index = ArrayUtils.indexOf(idcode, (byte)9);
@@ -89,7 +94,7 @@ public class JStructure3DFormObject extends AbstractFormObject {
 				StereoMolecule mol = new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(idcode, idcode, 0, index+1);
 				index = ArrayUtils.indexOf(idcode, (byte)32, index+1);
 				if (index == -1) {
-					((JFXConformerPanel)mComponent).addMolecule(mol, null, null);
+					((JFXMolViewerPanel)mComponent).addMolecule(mol, null, null);
 					}
 				else {
 					int count = 2;
@@ -100,13 +105,13 @@ public class JStructure3DFormObject extends AbstractFormObject {
 					Point3D cor = new Point3D(0,0,0);
 					for (int i=0; i<count; i++) {
 						javafx.scene.paint.Color color = javafx.scene.paint.Color.hsb(360f * i / count, 0.75, 0.6);
-						((JFXConformerPanel)mComponent).addMolecule(mol, color, cor);
+						((JFXMolViewerPanel)mComponent).addMolecule(mol, color, cor);
 						mol = new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(idcode, idcode, 0, index+1);
 						index = ArrayUtils.indexOf(idcode, (byte)32, index+1);
 						}
 					}
 				if (mCavityMol == null)
-					((JFXConformerPanel)mComponent).optimizeView();
+					((JFXMolViewerPanel)mComponent).optimizeView();
 				}
 			}
 		}
@@ -150,23 +155,23 @@ public class JStructure3DFormObject extends AbstractFormObject {
 		    if (mols != null) {
 			    EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE;
 			    settings.add(V3DScene.ViewerSettings.EDITING);
-				JFXConformerPanel fxp = new JFXConformerPanel(false, (int)(4*r.width), (int)(4*r.height), settings);
+				JFXMolViewerPanel fxp = new JFXMolViewerPanel(false, (int)(4*r.width), (int)(4*r.height), settings);
 			    fxp.waitForCompleteConstruction();
 				fxp.setBackground(Color.WHITE);
-				if (mOverlayMol != null)
-					fxp.setOverlayMolecule(mOverlayMol);
 			    if (mCavityMol != null)
 				    fxp.setProteinCavity(mCavityMol, mLigandMol, false);
+			    if (mOverlayMol != null)
+				    fxp.setOverlayMolecule(mOverlayMol);
 
 			    final CountDownLatch latch = new CountDownLatch(1);
 			    final StereoMolecule[] mols_ = mols;
 			    Platform.runLater(() -> {
-				    fxp.updateConformers(mols_, -1, null);
+				    fxp.updateConformers(mols_, null);
 				    latch.countDown();
 			    } );
 			    try { latch.await(); } catch (InterruptedException ie) {}
 
-				fxp.getV3DScene().getWorld().setTransform(((JFXConformerPanel)mComponent).getV3DScene().getWorld().getRotation());
+				fxp.getV3DScene().getWorld().setTransform(((JFXMolViewerPanel)mComponent).getV3DScene().getWorld().getRotation());
 				WritableImage image = fxp.getContentImage();
 				if (image != null)
 					g2D.drawImage(SwingFXUtils.fromFXImage(image, null), (int)(r.x), (int)(r.y),

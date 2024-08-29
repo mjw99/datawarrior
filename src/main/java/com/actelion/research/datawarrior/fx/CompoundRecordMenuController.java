@@ -1,36 +1,53 @@
-package com.actelion.research.datawarrior;
+package com.actelion.research.datawarrior.fx;
 
 import com.actelion.research.chem.IDCodeParserWithoutCoordinateInvention;
 import com.actelion.research.chem.StereoMolecule;
 import com.actelion.research.chem.alignment3d.PheSAAlignmentOptimizer;
+import com.actelion.research.chem.conf.AtomAssembler;
 import com.actelion.research.chem.io.CompoundTableConstants;
+import com.actelion.research.datawarrior.DEFrame;
 import com.actelion.research.datawarrior.task.table.DETaskSetColumnProperties;
-import com.actelion.research.gui.form.JFXConformerPanel;
 import com.actelion.research.table.model.CompoundRecord;
 import com.actelion.research.table.model.CompoundTableModel;
 import com.actelion.research.util.ArrayUtils;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.SeparatorMenuItem;
+import org.openmolecules.fx.viewer3d.V3DMolecule;
 import org.openmolecules.fx.viewer3d.V3DPopupMenuController;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
 
-public class FXMolPopupMenuController implements V3DPopupMenuController {
-	private final JFXConformerPanel mConformerPanel;
+public class CompoundRecordMenuController implements V3DPopupMenuController {
+	private final JFXMolViewerPanel mConformerPanel;
 	private final CompoundTableModel mTableModel;
 	private CompoundRecord mParentRecord;
-	private final int mIDCodeColumn,mCoordsColumn;
+	private int mCoordsColumn;
 	private final boolean mAllowSuperposeReference;
 
-	public FXMolPopupMenuController(JFXConformerPanel conformerPanel, CompoundTableModel tableModel, int coordsColumn, boolean allowSuperposeReference) {
+	/**
+	 * This controller adds menu items and functionality to 3D-Views in the detail area or in form views.
+	 * It allows to change display options, but not to change any structures.
+	 * @param conformerPanel
+	 * @param tableModel
+	 * @param coordsColumn
+	 * @param allowSuperposeReference
+	 */
+	public CompoundRecordMenuController(JFXMolViewerPanel conformerPanel, CompoundTableModel tableModel, int coordsColumn, boolean allowSuperposeReference) {
 		mConformerPanel = conformerPanel;
 		mTableModel = tableModel;
-		mIDCodeColumn = tableModel.getParentColumn(coordsColumn);
 		mCoordsColumn = coordsColumn;
 		mAllowSuperposeReference = allowSuperposeReference;
+	}
+
+	/**
+	 * Must be updated from outside, if columns are deleted from the table and coordsColumn index changes
+	 * @param coordsColumn
+	 */
+	public void updateCoordsColumn(int coordsColumn) {
+		mCoordsColumn = coordsColumn;
 	}
 
 	/**
@@ -46,11 +63,20 @@ public class FXMolPopupMenuController implements V3DPopupMenuController {
 		if (type == V3DPopupMenuController.TYPE_VIEW) {
 			boolean hasCavity = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyProteinCavity) != null;
 			boolean hasLigand = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyNaturalLigand) != null;
+			boolean hasQuery = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertySuperposeMolecule) != null;
 			boolean isShowLigand = !"false".equals(mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyShowNaturalLigand));
+			boolean isShowQuery = !"false".equals(mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyShowSuperposeMolecule));
 			boolean isSuperpose = CompoundTableConstants.cSuperposeValueReferenceRow.equals(mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertySuperpose));
 			boolean isShapeAlign = CompoundTableConstants.cSuperposeAlignValueShape.equals(mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertySuperposeAlign));
 
-			if (hasLigand) {
+			if (hasQuery) {
+				javafx.scene.control.CheckMenuItem itemShowQuery = new CheckMenuItem("Show Query Molecule");
+				itemShowQuery.setSelected(isShowQuery);
+				itemShowQuery.setOnAction(e -> setShowQueryMolecule(!isShowQuery));
+				popup.getItems().add(itemShowQuery);
+			}
+
+			if (!hasQuery && hasLigand) {   // query and ligand display are done via setOverlayMolecule(). Thus, we cannot have both!
 				javafx.scene.control.CheckMenuItem itemShowLigand = new CheckMenuItem("Show Natural Ligand");
 				itemShowLigand.setSelected(isShowLigand);
 				itemShowLigand.setOnAction(e -> setShowNaturalLigand(!isShowLigand));
@@ -86,6 +112,16 @@ public class FXMolPopupMenuController implements V3DPopupMenuController {
 		}
 	}
 
+	@Override
+	public void markCropDistanceForSurface(V3DMolecule fxmol, int type, V3DMolecule.SurfaceMode mode) {
+		boolean hasCavity = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyProteinCavity) != null;
+		boolean hasLigand = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyNaturalLigand) != null;
+		if (hasLigand && hasCavity && fxmol.getRole() == V3DMolecule.MoleculeRole.MACROMOLECULE) {
+			StereoMolecule ligand = mConformerPanel.getOverlayMolecule();
+			JFXMolViewerPanel.markAtomsInCropDistance(fxmol.getMolecule(), ligand, ligand.getCenterOfGravity());
+		}
+	}
+
 	private void setSuperposeMode(boolean isSuperpose, boolean isShapeAlign) {
 		SwingUtilities.invokeLater(() -> {
 			HashMap<String, String> map = new HashMap<>();
@@ -107,6 +143,19 @@ public class FXMolPopupMenuController implements V3DPopupMenuController {
 		});
 	}
 
+	private void setShowQueryMolecule(boolean isShowQuery) {
+		String query = isShowQuery ? mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertySuperposeMolecule) : null;
+		StereoMolecule queryMol = (query == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(query);
+		if (queryMol != null)
+			new AtomAssembler(queryMol).addImplicitHydrogens();
+		mConformerPanel.setOverlayMolecule(queryMol);
+		SwingUtilities.invokeLater(() -> {
+			HashMap<String, String> map = new HashMap<>();
+			map.put(CompoundTableConstants.cColumnPropertyShowSuperposeMolecule, isShowQuery ? null : "false");
+			new DETaskSetColumnProperties(getFrame(), mCoordsColumn, map, false).defineAndRun();
+		});
+	}
+
 	private DEFrame getFrame() {
 		Component c = mConformerPanel;
 		while (!(c instanceof DEFrame))
@@ -123,11 +172,11 @@ public class FXMolPopupMenuController implements V3DPopupMenuController {
 		new Thread(() -> {
 			StereoMolecule[] rowMol = null;
 			if (mParentRecord != null)
-				rowMol = getConformers(mParentRecord, true);
+				rowMol = getConformers(mCoordsColumn, mParentRecord, true);
 
 			StereoMolecule[] refMol = null;
 			if (isSuperpose && mTableModel.getActiveRow() != null && mTableModel.getActiveRow() != mParentRecord)
-				refMol = getConformers(mTableModel.getActiveRow(), false);
+				refMol = getConformers(mCoordsColumn, mTableModel.getActiveRow(), false);
 
 			if (rowMol != null) {
 				StereoMolecule best = null;
@@ -146,16 +195,15 @@ public class FXMolPopupMenuController implements V3DPopupMenuController {
 				}
 			}
 
-			int rowID = (mParentRecord == null || isSuperpose || mConformerPanel.getOverlayMolecule() != null) ? -1 : mParentRecord.getID();
-			mConformerPanel.updateConformers(rowMol, rowID, refMol == null ? null : refMol[0]);
+			mConformerPanel.updateConformers(rowMol, refMol == null ? null : refMol[0]);
 		}).start();
 	}
 
-	private StereoMolecule[] getConformers(CompoundRecord record, boolean allowMultiple) {
-		byte[] idcode = (byte[]) record.getData(mIDCodeColumn);
-		byte[] coords = (byte[]) record.getData(mCoordsColumn);
+	private StereoMolecule[] getConformers(int coordsColumn, CompoundRecord record, boolean allowMultiple) {
+		byte[] idcode = (byte[]) record.getData(mTableModel.getParentColumn(coordsColumn));
+		byte[] coords = (byte[]) record.getData(coordsColumn);
 		if (idcode != null && coords != null) {
-			boolean split3DFragments = "true".equals(mTableModel.getColumnProperty(mCoordsColumn, CompoundTableModel.cColumnProperty3DFragmentSplit));
+			boolean split3DFragments = "true".equals(mTableModel.getColumnProperty(coordsColumn, CompoundTableModel.cColumnProperty3DFragmentSplit));
 			if (split3DFragments) {
 				return new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(idcode, coords).getFragments();
 			}

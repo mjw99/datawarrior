@@ -1,4 +1,4 @@
-package com.actelion.research.datawarrior.task.chem.elib;
+package com.actelion.research.datawarrior.fx;
 
 import com.actelion.research.chem.*;
 import com.actelion.research.chem.conf.AtomAssembler;
@@ -7,7 +7,6 @@ import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
 import com.actelion.research.chem.io.pdb.parser.StructureAssembler;
 import com.actelion.research.gui.FileHelper;
-import com.actelion.research.gui.form.JFXConformerPanel;
 import javafx.application.Platform;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.SeparatorMenuItem;
@@ -22,11 +21,14 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-public class DockingPanelController implements V3DPopupMenuController {
-	private final JFXConformerPanel mConformerPanel;
+public class EditableLargeMolMenuController implements V3DPopupMenuController {
+	private final JFXMolViewerPanel mConformerPanel;
 	private StereoMolecule mProtein,mLigand;
 
-	public DockingPanelController(JFXConformerPanel conformerPanel) {
+	/**
+	 * This controller adds menu items to change and add ligand-protein complexes to the associated 3D-view.
+	 */
+	public EditableLargeMolMenuController(JFXMolViewerPanel conformerPanel) {
 		mConformerPanel = conformerPanel;
 		Platform.runLater(() ->
 			mConformerPanel.getV3DScene().addSceneListener(new V3DSceneListener() {
@@ -79,6 +81,14 @@ public class DockingPanelController implements V3DPopupMenuController {
 		}
 	}
 
+	@Override
+	public void markCropDistanceForSurface(V3DMolecule fxmol, int type, V3DMolecule.SurfaceMode mode) {
+		List<StereoMolecule> protein = mConformerPanel.getMoleculesInFXThread(V3DMolecule.MoleculeRole.MACROMOLECULE);
+		List<StereoMolecule> ligand = mConformerPanel.getMoleculesInFXThread(V3DMolecule.MoleculeRole.LIGAND);
+		if (protein.size() == 1 && ligand.size() == 1)
+			JFXMolViewerPanel.markAtomsInCropDistance(protein.get(0), ligand.get(0), ligand.get(0).getCenterOfGravity());
+	}
+
 	private void showMessageInEDT(String msg) {
 		SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(mConformerPanel, msg) );
 	}
@@ -107,8 +117,7 @@ public class DockingPanelController implements V3DPopupMenuController {
 						addProteinAndLigand(new PDBFileParser().getFromPDB(pdbCode));
 					}
 					catch (Exception e) {
-						showMessageInEDT(e.getMessage());
-						e.printStackTrace();
+						showMessageInEDT("Couldn't retrieve file from PDB-database: '"+e.getMessage()+"'.\nHowever that file may by available for manual download from 'https://www.rcsb.org'");
 					}
 				}
 
@@ -181,8 +190,8 @@ public class DockingPanelController implements V3DPopupMenuController {
 	private void addAllToScene() {
 		// if we have both, protein and ligand, then we can crop, center and add all to emptied scene
 		if (mProtein != null && mLigand != null) {
-			Coordinates cog = JFXConformerPanel.calculateCOG(mLigand);
-			final StereoMolecule _cavity = JFXConformerPanel.cropProtein(mProtein, mLigand, cog);
+			Coordinates cog = JFXMolViewerPanel.calculateCOG(mLigand);
+			final StereoMolecule _cavity = JFXMolViewerPanel.cropProtein(mProtein, mLigand, cog);
 			final StereoMolecule _ligand = new StereoMolecule(mLigand);
 
 // Don't do that to retain original coordinate space, e.g. for exporting
@@ -196,7 +205,7 @@ public class DockingPanelController implements V3DPopupMenuController {
 				V3DScene scene = mConformerPanel.getV3DScene();
 				scene.clearAll();
 				mConformerPanel.setProteinCavity(_cavity, _ligand, true);
-				scene.addMolecule(new V3DMolecule(_ligand, 0, V3DMolecule.MoleculeRole.LIGAND));
+				mConformerPanel.setOverlayMolecule(_ligand);
 			});
 		}
 		// if we have only the protein, we don't add hydrogen, but surface and just add the protein to the scene
@@ -212,12 +221,11 @@ public class DockingPanelController implements V3DPopupMenuController {
 					}
 				}
 
-				V3DMolecule protein = new V3DMolecule(new StereoMolecule(mProtein), MoleculeArchitect.ConstructionMode.WIRES, 0, V3DMolecule.MoleculeRole.MACROMOLECULE);
+				V3DMolecule protein = new V3DMolecule(new StereoMolecule(mProtein), MoleculeArchitect.CONSTRUCTION_MODE_WIRES, 0, V3DMolecule.MoleculeRole.MACROMOLECULE);
 				protein.setColor(Color.LIGHTGRAY);
 				protein.setSurfaceMode(MoleculeSurfaceAlgorithm.CONNOLLY, V3DMolecule.SurfaceMode.FILLED);
 				protein.setSurfaceColorMode(MoleculeSurfaceAlgorithm.CONNOLLY, SurfaceMesh.SURFACE_COLOR_ATOMIC_NOS);
-				scene.addMolecule(protein);
-
+				scene.addMolecule(protein, false);
 				scene.optimizeView();
 			});
 		}
@@ -236,7 +244,7 @@ public class DockingPanelController implements V3DPopupMenuController {
 					}
 				}
 
-				scene.addMolecule(new V3DMolecule(ligand, 1, V3DMolecule.MoleculeRole.LIGAND));
+				scene.addMolecule(new V3DMolecule(ligand, 1, V3DMolecule.MoleculeRole.LIGAND), false);
 				scene.optimizeView();
 			});
 		}

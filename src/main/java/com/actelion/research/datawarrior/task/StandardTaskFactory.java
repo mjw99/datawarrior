@@ -41,6 +41,7 @@ import com.actelion.research.datawarrior.task.list.*;
 import com.actelion.research.datawarrior.task.macro.*;
 import com.actelion.research.datawarrior.task.table.*;
 import com.actelion.research.datawarrior.task.view.*;
+import com.actelion.research.gui.FileHelper;
 import org.openmolecules.datawarrior.plugin.IPluginTask;
 
 import java.util.ArrayList;
@@ -109,6 +110,7 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskAutomaticSAR.TASK_NAME) ? new DETaskAutomaticSAR(frame)
 			 : codeMatches(taskCode, DETaskBuild3DFragmentLibrary.TASK_NAME) ? new DETaskBuild3DFragmentLibrary(frame)
 			 : codeMatches(taskCode, DETaskBuildEvolutionaryLibrary.TASK_NAME) ? new DETaskBuildEvolutionaryLibrary(frame, application)
+			 : codeMatches(taskCode, DETaskBuildingBlockQuery.TASK_NAME) ? new DETaskBuildingBlockQuery(frame, application)
 			 : codeMatches(taskCode, DETaskCalculateChemicalProperties.TASK_NAME) ? new DETaskCalculateChemicalProperties(frame)
 			 : codeMatches(taskCode, DETaskCalculateDescriptor.TASK_NAME) ? new DETaskCalculateDescriptor(frame, null, null)
 			 : codeMatches(taskCode, DETaskCalculateFuzzyScore.TASK_NAME) ? new DETaskCalculateFuzzyScore(frame)
@@ -160,10 +162,12 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskDockIntoProteinCavity.TASK_NAME) ? new DETaskDockIntoProteinCavity(frame)
 			 : codeMatches(taskCode, DETaskDuplicateColumn.TASK_NAME) ? new DETaskDuplicateColumn(frame, mainPane.getTableModel(), -1)
 			 : codeMatches(taskCode, DETaskDuplicateView.TASK_NAME) ? new DETaskDuplicateView(frame, mainPane, null)
+			 : codeMatches(taskCode, DETaskElse.TASK_NAME) ? new DETaskElse(frame)
 			 : codeMatches(taskCode, DETaskEnableAllFilters.TASK_NAME) ? new DETaskEnableAllFilters(frame)
-			 : codeMatches(taskCode, DETaskBuildingBlockQuery.TASK_NAME) ? new DETaskBuildingBlockQuery(frame, application)
+			 : codeMatches(taskCode, DETaskEndIf.TASK_NAME) ? new DETaskEndIf(frame)
 			 : codeMatches(taskCode, DETaskEnumerateCombinatorialLibrary.TASK_NAME) ? new DETaskEnumerateCombinatorialLibrary(frame, application)
 			 : codeMatches(taskCode, DETaskExecuteProgram.TASK_NAME) ? new DETaskExecuteProgram(frame)
+			 : codeMatches(taskCode, DETaskExitMacro.TASK_NAME) ? new DETaskExitMacro(frame)
 			 : codeMatches(taskCode, DETaskExitProgram.TASK_NAME) ? new DETaskExitProgram(frame, application)
 			 : codeMatches(taskCode, DETaskExportHitlist.TASK_NAME) ? new DETaskExportHitlist(frame, false)
 			 : codeMatches(taskCode, DETaskExportMacro.TASK_NAME) ? new DETaskExportMacro(frame, null)
@@ -177,6 +181,7 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskGotoLabel.TASK_NAME) ? new DETaskGotoLabel(frame)
 			 : codeMatches(taskCode, DETaskHideTableColumnGroup.TASK_NAME) ? new DETaskHideTableColumnGroup(frame, mainPane.getTableView(), frame.getTableModel())
 			 : codeMatches(taskCode, DETaskHideTableColumns.TASK_NAME) ? new DETaskHideTableColumns(frame, mainPane.getTableView(), mainPane.getTableModel(), null)
+			 : codeMatches(taskCode, DETaskIfThen.TASK_NAME) ? new DETaskIfThen(frame)
 			 : codeMatches(taskCode, DETaskImportHitlist.TASK_NAME) ? new DETaskImportHitlist(application)
 			 : codeMatches(taskCode, DETaskImportMacro.TASK_NAME) ? new DETaskImportMacro(application)
 			 : codeMatches(taskCode, DETaskInvertSelection.TASK_NAME) ? new DETaskInvertSelection(frame)
@@ -218,13 +223,15 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskRetrieveDataFromURL.TASK_NAME) ? new DETaskRetrieveDataFromURL(frame, application)
 			 : codeMatches(taskCode, DETaskRetrieveWikipediaCompounds.TASK_NAME) ? new DETaskRetrieveWikipediaCompounds(frame, application)
 			 : codeMatches(taskCode, DETaskResetAllFilters.TASK_NAME) ? new DETaskResetAllFilters(frame)
+			 : codeMatches(taskCode, DETaskRunTaskInteractive.TASK_NAME) ? new DETaskRunTaskInteractive(frame)
 			 : codeMatches(taskCode, DETaskRunMacro.TASK_NAME) ? new DETaskRunMacro(frame, null)
 			 : codeMatches(taskCode, DETaskRunMacroFromFile.TASK_NAME) ? new DETaskRunMacroFromFile(application)
 			 : codeMatches(taskCode, DETaskSaveFile.TASK_NAME) ? new DETaskSaveFile(frame)
 			 : codeMatches(taskCode, DETaskSaveFileAs.TASK_NAME) ? new DETaskSaveFileAs(frame)
 			 : codeMatches(taskCode, DETaskSaveSDFileAs.TASK_NAME) ? new DETaskSaveSDFileAs(frame)
 			 : codeMatches(taskCode, DETaskSaveTemplateFileAs.TASK_NAME) ? new DETaskSaveTemplateFileAs(frame)
-			 : codeMatches(taskCode, DETaskSaveTextFileAs.TASK_NAME) ? new DETaskSaveTextFileAs(frame)
+			 : codeMatches(taskCode, DETaskSaveTextFileAs.TASK_NAME_CSV) ? new DETaskSaveTextFileAs(frame, FileHelper.cFileTypeTextCommaSeparated)
+			 : codeMatches(taskCode, DETaskSaveTextFileAs.TASK_NAME_TXT) ? new DETaskSaveTextFileAs(frame, FileHelper.cFileTypeTextTabDelimited)
 			 : codeMatches(taskCode, DETaskSaveVisibleRowsAs.TASK_NAME) ? new DETaskSaveVisibleRowsAs(frame)
 			 : codeMatches(taskCode, DETaskSearchGooglePatents.TASK_NAME) ? new DETaskSearchGooglePatents(frame, application)
 			 : codeMatches(taskCode, DETaskSearchPatentReactions.TASK_NAME) ? new DETaskSearchPatentReactions(frame, application)
@@ -281,7 +288,8 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskSplitRows.TASK_NAME) ? new DETaskSplitRows(frame, frame.getTableModel())
 			 : codeMatches(taskCode, DETaskSplitView.TASK_NAME) ? new DETaskSplitView(frame, mainPane, null)
 			 : codeMatches(taskCode, DETaskSQLQuery.TASK_NAME) ? new DETaskSQLQuery(frame, application)
-			 : codeMatches(taskCode, DETaskSuperposeConformers.TASK_NAME) ? new DETaskSuperposeConformers(frame)
+			 : codeMatches(taskCode, DETaskSuperposeConformers.TASK_NAME_FLEX) ? new DETaskSuperposeConformers(frame, true)
+			 : codeMatches(taskCode, DETaskSuperposeConformers.TASK_NAME_RIGID) ? new DETaskSuperposeConformers(frame, false)
 			 : codeMatches(taskCode, DETaskSynchronizeView.TASK_NAME) ? new DETaskSynchronizeView(frame, mainPane, null, null)
 			 : codeMatches(taskCode, DETaskRemoveColumnGroup.TASK_NAME) ? new DETaskRemoveColumnGroup(frame, mainPane.getTableView(), mainPane.getTableModel())
 			 : codeMatches(taskCode, DETaskUseAsFilter.TASK_NAME) ? new DETaskUseAsFilter(frame, mainPane, null)
@@ -343,6 +351,7 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskAutomaticSAR.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskBuild3DFragmentLibrary.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskBuildEvolutionaryLibrary.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskBuildingBlockQuery.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskCalculateChemicalProperties.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskCalculateDescriptor.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskCalculateSelectivityScore.TASK_NAME));
@@ -393,10 +402,12 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskDockIntoProteinCavity.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskDuplicateColumn.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskDuplicateView.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskElse.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILTER, DETaskEnableAllFilters.TASK_NAME));
-			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskBuildingBlockQuery.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskEndIf.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskEnumerateCombinatorialLibrary.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskExecuteProgram.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskExitMacro.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskExitProgram.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_LIST, DETaskExportHitlist.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskExportMacro.TASK_NAME));
@@ -410,6 +421,7 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskGotoLabel.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskHideTableColumnGroup.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskHideTableColumns.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskIfThen.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_LIST, DETaskImportHitlist.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskImportMacro.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_EDIT, DETaskInvertSelection.TASK_NAME));
@@ -457,7 +469,8 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveFileAs.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveSDFileAs.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveTemplateFileAs.TASK_NAME));
-			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveTextFileAs.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveTextFileAs.TASK_NAME_CSV));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveTextFileAs.TASK_NAME_TXT));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILE, DETaskSaveVisibleRowsAs.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskSearchGooglePatents.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskSearchPatentReactions.TASK_NAME));
@@ -498,6 +511,7 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskSetReactionHiliteMode.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskSetReferenceRow.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetRotation.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskRunTaskInteractive.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetStatisticalViewOptions.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskSetStructureHiliteMode.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSetStructureDisplayMode.TASK_NAME));
@@ -514,7 +528,8 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATA, DETaskSplitRows.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSplitView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskSQLQuery.TASK_NAME));
-			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskSuperposeConformers.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskSuperposeConformers.TASK_NAME_FLEX));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskSuperposeConformers.TASK_NAME_RIGID));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskSynchronizeView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_TABLE, DETaskRemoveColumnGroup.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskUseAsFilter.TASK_NAME));

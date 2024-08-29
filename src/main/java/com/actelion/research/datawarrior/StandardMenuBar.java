@@ -130,11 +130,11 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 	protected JMenu jMenuFileNewFrom,jMenuFileOpenSpecial,jMenuFileOpenRecent,jMenuFileSaveSpecial,jMenuEditPasteSpecial,jMenuDataRemoveRows,
 				  jMenuDataSelfOrganizingMap,jMenuDataSetRange,jMenuDataViewLogarithmic,jMenuChemAddMoleculeDescriptor,
 				  jMenuChemAddReactionDescriptor,jMenuListCreate,jMenuMacroExport,jMenuMacroCopy,jMenuMacroRun,jMenuHelp,jMenuHelpNews,jMenuHelpLaF,
-				  jMenuHelpDPIScaling,jMenuHelpUpdate,jMenuHelpTrustedPlugins,jMenuChemMachineLearning;
+				  jMenuHelpDPIScaling,jMenuHelpUpdate,jMenuHelpTrustedPlugins,jMenuChemSuperpose,jMenuChemMachineLearning;
 
 	private JMenuItem jMenuFileNew,jMenuFileNewFromVisible,jMenuFileNewFromSelection,jMenuFileNewFromPivoting,jMenuFileNewFromReversePivoting,jMenuFileNewFromTransposition,
 					  jMenuFileOpen,jMenuFileOpenMacro,jMenuFileOpenTemplate,jMenuFileOpenMDLReactions,jMenuFileMerge,
-					  jMenuFileAppend,jMenuFileClose,jMenuFileCloseAll,jMenuFileSave,jMenuFileSaveAs,jMenuFileSaveText,
+					  jMenuFileAppend,jMenuFileClose,jMenuFileCloseAll,jMenuFileSave,jMenuFileSaveAs,jMenuFileSaveTXT,jMenuFileSaveCSV,
 					  jMenuFileSaveSDF,jMenuFileSaveTemplate,jMenuFileSaveVisibleAs,jMenuFilePageFormat,
 					  jMenuFilePreview,jMenuFilePrint, jMenuFileQuit,jMenuEditCut,jMenuEditCopy,jMenuEditPaste,
 					  jMenuEditPasteWithHeader,jMenuEditPasteWithoutHeader,jMenuEditDelete,jMenuEditPasteAppend,jMenuEditPasteMerge,
@@ -149,7 +149,7 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 					  jMenuChemExtractReactants,jMenuChemExtractCatalysts,jMenuChemExtractProducts,jMenuChemExtractTransformation,
 					  jMenuChemCCLibrary,jMenuChemEALibrary,jMenuChemEnumerateMarkush,jMenuChemAddProperties,jMenuChemAddFormula,jMenuChemAddSmiles,
 					  jMenuChemAddInchi,jMenuChemAddInchiKey,jMenuChemAddCanonicalCode,jMenuChemCreate2DCoords,jMenuChemCreate3DCoords,
-					  jMenuChemSuperpose,jMenuChemDock, jMenuChemExtractFragment,
+					  jMenuChemSuperposeFlexible,jMenuChemSuperposeRigid,jMenuChemDock, jMenuChemExtractFragment,
 					  jMenuChemAddSubstructureCount,jMenuChemAddStructureFromName, jMenuChemDecomposeRGroups,jMenuChemInteractiveSARTable,
 					  jMenuChemAnalyzeScaffolds,jMenuChemAnalyzeCliffs,jMenuChemMatchFile,jMenuChemSelectDiverse,
 					  jMenuChemCluster,jMenuChemExtract3DFragments,jMenuChemMapReactions,jMenuChemCompareReactionMapping,jMenuChemAddReactionSmiles,
@@ -501,7 +501,8 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuFileSave = new JMenuItem();
 		jMenuFileSaveAs = new JMenuItem();
 		jMenuFileSaveSpecial = new JMenu();
-		jMenuFileSaveText = new JMenuItem();
+		jMenuFileSaveTXT = new JMenuItem();
+		jMenuFileSaveCSV = new JMenuItem();
 		jMenuFileSaveSDF = new JMenuItem();
 		jMenuFileSaveTemplate = new JMenuItem();
 		jMenuFileSaveVisibleAs = new JMenuItem();
@@ -554,8 +555,10 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuFileSaveAs.setAccelerator(KeyStroke.getKeyStroke('S', Event.SHIFT_MASK | MENU_MASK));
 		jMenuFileSaveAs.addActionListener(this);
 		jMenuFileSaveSpecial.setText("Save Special");
-		jMenuFileSaveText.setText("Textfile...");
-		jMenuFileSaveText.addActionListener(this);
+		jMenuFileSaveTXT.setText("TAB-Delimited Textfile...");
+		jMenuFileSaveTXT.addActionListener(this);
+		jMenuFileSaveCSV.setText("Comma-Separated Textfile...");
+		jMenuFileSaveCSV.addActionListener(this);
 		jMenuFileSaveSDF.setText("SD-File...");
 		jMenuFileSaveSDF.addActionListener(this);
 		jMenuFileSaveTemplate.setText("Template...");
@@ -608,7 +611,8 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuFile.addSeparator();
 		jMenuFile.add(jMenuFileSave);
 		jMenuFile.add(jMenuFileSaveAs);
-		jMenuFileSaveSpecial.add(jMenuFileSaveText);
+		jMenuFileSaveSpecial.add(jMenuFileSaveTXT);
+		jMenuFileSaveSpecial.add(jMenuFileSaveCSV);
 		jMenuFileSaveSpecial.add(jMenuFileSaveSDF);
 		jMenuFileSaveSpecial.add(jMenuFileSaveTemplate);
 		jMenuFile.add(jMenuFileSaveSpecial);
@@ -864,7 +868,9 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuChemAddStructureFromName = new JMenuItem();
 		jMenuChemCreate2DCoords = new JMenuItem();
 		jMenuChemCreate3DCoords = new JMenuItem();
-		jMenuChemSuperpose = new JMenuItem();
+		jMenuChemSuperpose = new JMenu();
+		jMenuChemSuperposeFlexible = new JMenuItem();
+		jMenuChemSuperposeRigid = new JMenuItem();
 		jMenuChemDock = new JMenuItem();
 		jMenuChemExtract3DFragments = new JMenuItem();
 		jMenuChemMachineLearning = new JMenu();
@@ -932,12 +938,15 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuChemCreate2DCoords.addActionListener(this);
 		jMenuChemCreate3DCoords.setText("Generate Conformers...");
 		jMenuChemCreate3DCoords.addActionListener(this);
-		jMenuChemSuperpose.setText("Superpose Conformers...");
-		jMenuChemSuperpose.addActionListener(this);
+		jMenuChemSuperposeFlexible.setText("Flexible...");
+		jMenuChemSuperposeFlexible.addActionListener(this);
+		jMenuChemSuperposeRigid.setText("Rigid...");
+		jMenuChemSuperposeRigid.addActionListener(this);
 		jMenuChemDock.setText("Dock Structures Into Protein Cavity...");
 		jMenuChemDock.addActionListener(this);
 		jMenuChemExtract3DFragments.setText("Build 3D-Fragment Library...");
 		jMenuChemExtract3DFragments.addActionListener(this);
+		jMenuChemSuperpose.setText("Superpose Conformers");
 		jMenuChemMachineLearning.setText("Machine Learning");
 		jMenuChemAssessPredictionQuality.setText("Assess Prediction Quality...");
 		jMenuChemAssessPredictionQuality.addActionListener(this);
@@ -1031,6 +1040,8 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 		jMenuChem.add(jMenuChemCreate2DCoords);
 		jMenuChem.add(jMenuChemCreate3DCoords);
 		jMenuChem.add(jMenuChemSuperpose);
+		jMenuChemSuperpose.add(jMenuChemSuperposeFlexible);
+		jMenuChemSuperpose.add(jMenuChemSuperposeRigid);
 		jMenuChem.add(jMenuChemDock);
 		jMenuChem.addSeparator();
 		if (System.getProperty("development") != null) {
@@ -1651,8 +1662,10 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 					new DETaskSaveFile(mParentFrame).defineAndRun();
 			} else if (source == jMenuFileSaveAs)
 				new DETaskSaveFileAs(mParentFrame).defineAndRun();
-			else if (source == jMenuFileSaveText)
-				new DETaskSaveTextFileAs(mParentFrame).defineAndRun();
+			else if (source == jMenuFileSaveTXT)
+				new DETaskSaveTextFileAs(mParentFrame, FileHelper.cFileTypeTextTabDelimited).defineAndRun();
+			else if (source == jMenuFileSaveCSV)
+				new DETaskSaveTextFileAs(mParentFrame, FileHelper.cFileTypeTextCommaSeparated).defineAndRun();
 			else if (source == jMenuFileSaveSDF)
 				new DETaskSaveSDFileAs(mParentFrame).defineAndRun();
 			else if (source == jMenuFileSaveTemplate)
@@ -1784,8 +1797,10 @@ public class StandardMenuBar extends JMenuBar implements ActionListener,
 				new DETaskAdd2DCoordinates(mParentFrame).defineAndRun();
 			else if (source == jMenuChemCreate3DCoords)
 				new DETaskAdd3DCoordinates(mParentFrame).defineAndRun();
-			else if (source == jMenuChemSuperpose)
-				new DETaskSuperposeConformers(mParentFrame).defineAndRun();
+			else if (source == jMenuChemSuperposeFlexible)
+				new DETaskSuperposeConformers(mParentFrame, true).defineAndRun();
+			else if (source == jMenuChemSuperposeRigid)
+				new DETaskSuperposeConformers(mParentFrame, false).defineAndRun();
 			else if (source == jMenuChemDock)
 				new DETaskDockIntoProteinCavity(mParentFrame).defineAndRun();
 			else if (source == jMenuChemExtract3DFragments)

@@ -24,13 +24,12 @@ import com.actelion.research.chem.docking.DockingEngine;
 import com.actelion.research.chem.docking.DockingFailedException;
 import com.actelion.research.chem.io.CompoundTableConstants;
 import com.actelion.research.datawarrior.DEFrame;
-import com.actelion.research.datawarrior.task.chem.elib.DockingPanelController;
-import com.actelion.research.gui.form.JFXConformerPanel;
+import com.actelion.research.datawarrior.fx.EditableLargeMolMenuController;
+import com.actelion.research.datawarrior.fx.JFXMolViewerPanel;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.table.model.CompoundRecord;
 import com.actelion.research.util.DoubleFormat;
 import info.clearthought.layout.TableLayout;
-import javafx.application.Platform;
 import org.openmolecules.chem.conf.gen.ConformerGenerator;
 import org.openmolecules.fx.viewer3d.V3DMolecule;
 import org.openmolecules.fx.viewer3d.V3DScene;
@@ -53,7 +52,7 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 	private static final String PROPERTY_CAVITY = "cavity";
 	private static final String PROPERTY_PROTONATE = "protonate";
 
-	private JFXConformerPanel mConformerPanel;
+	private JFXMolViewerPanel mConformerPanel;
 	private JCheckBox mCheckBoxProtonate;
 	private boolean mProtonateFragment;
 	private DockingEngine[] mDockingEngine;
@@ -86,8 +85,8 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 
 		EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE;
 		settings.add(V3DScene.ViewerSettings.EDITING);
-		mConformerPanel = new JFXConformerPanel(false, settings);
-		mConformerPanel.setPopupMenuController(new DockingPanelController(mConformerPanel));
+		mConformerPanel = new JFXMolViewerPanel(false, settings);
+		mConformerPanel.setPopupMenuController(new EditableLargeMolMenuController(mConformerPanel));
 		mConformerPanel.adaptToLookAndFeelChanges();
 //		mConformerPanel.setBackground(new java.awt.Color(24, 24, 96));
 		mConformerPanel.setPreferredSize(new Dimension(HiDPIHelper.scale(320), HiDPIHelper.scale(240)));
@@ -136,12 +135,9 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 		String ligandIDCode = configuration.getProperty(PROPERTY_LIGAND);
 		StereoMolecule ligand = (ligandIDCode == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(ligandIDCode);
 		if (cavity != null) {
-			Platform.runLater(() -> {
-				mConformerPanel.setProteinCavity(cavity, ligand, true);
-				V3DMolecule ligand3D = new V3DMolecule(ligand, 0, V3DMolecule.MoleculeRole.LIGAND);
-				ligand3D.setColor(javafx.scene.paint.Color.CORAL);
-				mConformerPanel.getV3DScene().addMolecule(ligand3D);
-				} );
+			mConformerPanel.setProteinCavity(cavity, ligand, true);
+			if (ligand != null)
+				mConformerPanel.setOverlayMolecule(ligand);
 			}
 		}
 
