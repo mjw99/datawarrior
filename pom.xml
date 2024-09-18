@@ -68,7 +68,7 @@
 		<maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
 		<maven-clean-plugin.version>3.3.2</maven-clean-plugin.version>
 		<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
-		<jpackage-maven-plugin.version>1.6.3</jpackage-maven-plugin.version>
+		<jpackage-maven-plugin.version>1.6.5</jpackage-maven-plugin.version>
 		<extra-enforcer-rules.version>1.8.0</extra-enforcer-rules.version>
 	</properties>
 
