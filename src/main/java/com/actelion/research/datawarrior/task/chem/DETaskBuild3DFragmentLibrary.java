@@ -17,7 +17,6 @@ import com.actelion.research.util.ArrayUtils;
 import info.clearthought.layout.TableLayout;
 
 import javax.swing.*;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,11 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 	public static final String TASK_NAME = "Build 3D-Fragment Library";
 
-	private static final int MIN_EXIT_VECTORS = 1;
-	private static final int MAX_EXIT_VECTORS = 4;
+	private static final int MIN_EXIT_VECTORS = 2;
+	private static final int MAX_EXIT_VECTORS = 5;
 
 	private static final String PROPERTY_STRUCTURE_COLUMN = "structureColumn";
-	private static final String PROPERTY_MAX_ROTATABLE_BONDS = "maxRotatableBonds";
+	private static final String PROPERTY_MAX_BOND_FLEXIBILITY_SUM = "maxBondFlexibilitySum";
 	private static final String PROPERTY_MIN_FRAGMENT_ATOMS = "minFragmentAtoms";
 	private static final String PROPERTY_MAX_FRAGMENT_ATOMS = "maxFragmentAtoms";
 	private static final String PROPERTY_MIN_EXIT_VECTORS = "minExitVectors";
@@ -37,11 +36,11 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 
 	private static final String FRAGMENT_COLUMN_NAME = "Fragment";
 
-	private DataWarrior			mApplication;
-	private DEFrame				mTargetFrame;
-	private CompoundTableModel	mTableModel;
-	private JComboBox			mComboBoxStructureColumn;
-	private JTextField			mTextFieldMaxBonds,mTextFieldMinAtoms,mTextFieldMaxAtoms,mTextFieldMaxExits,mTextFieldMinExits;
+	private final DataWarrior mApplication;
+	private DEFrame mTargetFrame;
+	private final CompoundTableModel mTableModel;
+	private JComboBox<String> mComboBoxStructureColumn;
+	private JTextField mTextFieldMaxBondFlexibilitySum,mTextFieldMinAtoms,mTextFieldMaxAtoms,mTextFieldMaxExits,mTextFieldMinExits;
 
 	public DETaskBuild3DFragmentLibrary(DEFrame parent) {
 		super(parent, true);
@@ -67,15 +66,11 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 			return false;
 			}
 		for (int column:idcodeColumn) {
-			boolean found = false;
-			if (mTableModel.getChildColumn(column, CompoundTableConstants.cColumnType3DCoordinates) != -1) {
-				found = true;
+			if (mTableModel.getChildColumn(column, CompoundTableConstants.cColumnType3DCoordinates) != -1)
 				break;
-				}
-			if (!found) {
-				showErrorMessage("No structure column with 3-dimensional atom coordinates found.\nYou may generate conformers or get 3D-structures from the COD database.");
-				return false;
-				}
+
+			showErrorMessage("No structure column with 3-dimensional atom coordinates found.\nYou may generate conformers or get 3D-structures from the COD database.");
+			return false;
 			}
 
 		return true;
@@ -86,15 +81,16 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 		JPanel content = new JPanel();
 		int gap = HiDPIHelper.scale(8);
 		double[][] size = { {gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap},
-							{gap, TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED,
-							 gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED, gap} };
+							{gap, TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED,
+							 gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, gap} };
 		content.setLayout(new TableLayout(size));
 
 		int[] idcodeColumn = mTableModel.getSpecialColumnList(CompoundTableModel.cColumnTypeIDCode);
-		mComboBoxStructureColumn = new JComboBox();
+		mComboBoxStructureColumn = new JComboBox<>();
 		if (idcodeColumn != null)
-			for (int i=0; i<idcodeColumn.length; i++)
-				mComboBoxStructureColumn.addItem(mTableModel.getColumnTitle(idcodeColumn[i]));
+			for (int column:idcodeColumn)
+				mComboBoxStructureColumn.addItem(mTableModel.getColumnTitle(column));
+
 		mComboBoxStructureColumn.setEditable(!isInteractive());
 		content.add(new JLabel("Structure column:"), "1,1");
 		content.add(mComboBoxStructureColumn, "3,1");
@@ -109,9 +105,9 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 		mTextFieldMaxAtoms = new JTextField(6);
 		content.add(mTextFieldMaxAtoms, "3,7");
 
-		content.add(new JLabel("Maximum rotatable bonds:"), "1,9");
-		mTextFieldMaxBonds = new JTextField(6);
-		content.add(mTextFieldMaxBonds, "3,9");
+		content.add(new JLabel("Maximum bond flexibility sum:"), "1,9");
+		mTextFieldMaxBondFlexibilitySum = new JTextField(6);
+		content.add(mTextFieldMaxBondFlexibilitySum, "3,9");
 
 		content.add(new JLabel("Minimum exit vectors:"), "1,11");
 		mTextFieldMinExits = new JTextField(6);
@@ -135,7 +131,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 		configuration.setProperty(PROPERTY_STRUCTURE_COLUMN, mTableModel.getColumnTitleNoAlias((String)mComboBoxStructureColumn.getSelectedItem()));
 		configuration.setProperty(PROPERTY_MIN_FRAGMENT_ATOMS, mTextFieldMinAtoms.getText());
 		configuration.setProperty(PROPERTY_MAX_FRAGMENT_ATOMS, mTextFieldMaxAtoms.getText());
-		configuration.setProperty(PROPERTY_MAX_ROTATABLE_BONDS, mTextFieldMaxBonds.getText());
+		configuration.setProperty(PROPERTY_MAX_BOND_FLEXIBILITY_SUM, mTextFieldMaxBondFlexibilitySum.getText());
 		configuration.setProperty(PROPERTY_MIN_EXIT_VECTORS, mTextFieldMinExits.getText());
 		configuration.setProperty(PROPERTY_MAX_EXIT_VECTORS, mTextFieldMaxExits.getText());
 		return configuration;
@@ -144,7 +140,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 	@Override
 	public void setDialogConfiguration(Properties configuration) {
 		String structureColumn = configuration.getProperty(PROPERTY_STRUCTURE_COLUMN, "");
-		if (structureColumn.length() != 0) {
+		if (!structureColumn.isEmpty()) {
 			int column = mTableModel.findColumn(structureColumn);
 			if (column != -1 && mTableModel.isColumnTypeStructure(column))
 				mComboBoxStructureColumn.setSelectedItem(mTableModel.getColumnTitle(column));
@@ -159,7 +155,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 
 		mTextFieldMinAtoms.setText(configuration.getProperty(PROPERTY_MIN_FRAGMENT_ATOMS, ""));
 		mTextFieldMaxAtoms.setText(configuration.getProperty(PROPERTY_MAX_FRAGMENT_ATOMS, ""));
-		mTextFieldMaxBonds.setText(configuration.getProperty(PROPERTY_MAX_ROTATABLE_BONDS, ""));
+		mTextFieldMaxBondFlexibilitySum.setText(configuration.getProperty(PROPERTY_MAX_BOND_FLEXIBILITY_SUM, ""));
 		mTextFieldMinExits.setText(configuration.getProperty(PROPERTY_MIN_EXIT_VECTORS, ""));
 		mTextFieldMaxExits.setText(configuration.getProperty(PROPERTY_MAX_EXIT_VECTORS, ""));
 		}
@@ -172,7 +168,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 			mComboBoxStructureColumn.setSelectedItem("Structure");
 		mTextFieldMinAtoms.setText("5");
 		mTextFieldMaxAtoms.setText("24");
-		mTextFieldMaxBonds.setText("2");
+		mTextFieldMaxBondFlexibilitySum.setText("1");
 		mTextFieldMinExits.setText("2");
 		mTextFieldMaxExits.setText("4");
 		}
@@ -180,7 +176,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 	@Override
 	public boolean isConfigurationValid(Properties configuration, boolean isLive) {
 		String structureColumn = configuration.getProperty(PROPERTY_STRUCTURE_COLUMN, "");
-		if (structureColumn.length() == 0) {
+		if (structureColumn.isEmpty()) {
 			showErrorMessage("No structure column defined.");
 			return false;
 			}
@@ -218,7 +214,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 			if (maxAtoms < minAtoms) {
 				showErrorMessage("Value for maximum fragment atoms must not be smaller than the minimum.");
 				return false;
-			}
+				}
 			}
 		catch (NumberFormatException nfe) {
 			showErrorMessage("Value for maximum fragment atom count is not numerical.");
@@ -226,22 +222,22 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 			}
 
 		try {
-			int maxBonds = Integer.parseInt(configuration.getProperty(PROPERTY_MIN_FRAGMENT_ATOMS, ""));
-			if (maxBonds < 0 || maxBonds > 8) {
-				showErrorMessage("Value for maximum rotatable fragment bonds be smaller than 9.");
+			float maxBondFlexibilitySum = Float.parseFloat(configuration.getProperty(PROPERTY_MAX_BOND_FLEXIBILITY_SUM, ""));
+			if (maxBondFlexibilitySum < 0 || maxBondFlexibilitySum >= 5) {
+				showErrorMessage("The maximum sum of bond flexibilities should be (much) smaller than 5.");
 				return false;
 				}
 			}
 		catch (NumberFormatException nfe) {
-			showErrorMessage("Value for minimum fragment atom count is not numerical.");
+			showErrorMessage("The maximum sum of bond flexibilities is not numerical.");
 			return false;
 			}
 
 		int minExits = 0;
 		try {
 			minExits = Integer.parseInt(configuration.getProperty(PROPERTY_MIN_EXIT_VECTORS, ""));
-			if (minExits < 1) {
-				showErrorMessage("Value for minimum exit vectors cannot be smaller than 1.");
+			if (minExits < 2) {
+				showErrorMessage("Value for minimum exit vectors cannot be smaller than "+MIN_EXIT_VECTORS+".");
 				return false;
 				}
 			}
@@ -252,8 +248,8 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 
 		try {
 			int maxExits = Integer.parseInt(configuration.getProperty(PROPERTY_MAX_EXIT_VECTORS, ""));
-			if (maxExits < minExits) {
-				showErrorMessage("Value for maximum exit vectors must not be smaller than the minimum.");
+			if (maxExits < minExits || maxExits > MAX_EXIT_VECTORS) {
+				showErrorMessage("Maximum exit vector value must not be smaller than the minimum nor larger than "+MAX_EXIT_VECTORS);
 				return false;
 				}
 			}
@@ -272,7 +268,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 
 		int minAtoms = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MIN_FRAGMENT_ATOMS));
 		int maxAtoms = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MAX_FRAGMENT_ATOMS));
-		int maxBonds = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MAX_ROTATABLE_BONDS));
+		int maxBondFlexibilitySum = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MAX_BOND_FLEXIBILITY_SUM));
 		int minExits = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MIN_EXIT_VECTORS));
 		int maxExits = Integer.parseInt(configuration.getProperty(DETaskBuild3DFragmentLibrary.PROPERTY_MAX_EXIT_VECTORS));
 
@@ -287,7 +283,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 		for (int i=0; i<threadCount; i++) {
 			thread[i] = new Thread("3D-Fragment Generator "+(i+1)) {
 				public void run() {
-					Fragmenter3D fragmenter = new Fragmenter3D(minAtoms, maxAtoms, maxBonds, minExits, maxExits);
+					Fragmenter3D fragmenter = new Fragmenter3D(minAtoms, maxAtoms, maxBondFlexibilitySum, minExits, maxExits);
 					StereoMolecule mol = new StereoMolecule();
 					IDCodeParserWithoutCoordinateInvention parser = new IDCodeParserWithoutCoordinateInvention();
 
@@ -304,7 +300,7 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 								parser.parse(mol, idcode, coords, 0, coordsIndex+1);
 								coordsIndex = ArrayUtils.indexOf(coords, (byte)' ', coordsIndex+1);
 								if (mol.getAllAtoms() != 0)
-									fragmentSet.addAll(fragmenter.getFragments(mol));
+									fragmentSet.addAll(fragmenter.buildFragments(mol, true));
 								if (coordsIndex == -1)
 									break;
 								}
@@ -335,14 +331,12 @@ public class DETaskBuild3DFragmentLibrary extends ConfigurableTask {
 			tableModel.setColumnName("Exit Vectors", 3);
 
 			int row = 0;
-			Iterator<Fragment3D> iterator = fragmentSet.iterator();
-			while (iterator.hasNext()) {
-				Fragment3D f = iterator.next();
-				tableModel.setTotalValueAt(f.getIDCode(), row, 0);
-				tableModel.setTotalValueAt(f.getIDCoordinates(), row, 2);
-				tableModel.setTotalValueAt(Integer.toString(f.getExitAtoms().length), row, 3);
+			for (Fragment3D fragment : fragmentSet) {
+				tableModel.setTotalValueAt(fragment.getIDCode(), row, 0);
+				tableModel.setTotalValueAt(fragment.getIDCoordinates(), row, 2);
+				tableModel.setTotalValueAt(Integer.toString(fragment.getExitAtoms().length), row, 3);
 				row++;
-				}
+			}
 
 			tableModel.finalizeTable(CompoundTableEvent.cSpecifierNoRuntimeProperties, this);
 
