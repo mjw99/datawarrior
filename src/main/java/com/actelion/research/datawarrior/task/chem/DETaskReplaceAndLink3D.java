@@ -37,7 +37,6 @@ import com.actelion.research.gui.FileHelper;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.table.model.CompoundTableEvent;
 import com.actelion.research.table.model.CompoundTableModel;
-import com.actelion.research.table.view.ExplanationView;
 import com.actelion.research.table.view.VisualizationColor;
 import com.actelion.research.table.view.VisualizationPanel2D;
 import com.actelion.research.util.DoubleFormat;
@@ -85,8 +84,8 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 	private static final int FRAGMENT_RMSD_COLUMN = 7;
 	private static final int FRAGMENT_ANGLE_COLUMN = 8;
 	private static final int QUERY_RMSD_COLUMN = 9;
-	private static final int PHESA_FLEX_COLUMN = 10;
-	private static final int PHESA_RIGID_COLUMN = 11;
+	private static final int PHESA_RIGID_COLUMN = 10;
+	private static final int PHESA_FLEX_COLUMN = 11;
 	private static final int SCAFFOLD_SIM_COLUMN = 12;
 	private static final int ENERGY_DIF_COLUMN = 13;
 
@@ -145,7 +144,7 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 		content.add(new JLabel("First, define a bio-active 3D-structure.", JLabel.CENTER), "1,3,3,3");
 		content.add(new JLabel("Then, select scaffold atoms to be replaced.", JLabel.CENTER), "1,5,3,5");
 
-		content.add(new JLabel("3D-Fragment File:"), "1,7");
+		content.add(new JLabel("3D-fragment file:"), "1,7");
 		mLabelInFileName = new JFilePathLabel(!isInteractive());
 		content.add(mLabelInFileName, "3,7");
 
@@ -383,6 +382,7 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 
 		ArrayList<StereoMolecule> mols = mConformerPanel.getMolecules(null);
 		if (!mols.isEmpty() && mols.get(0).getAllAtoms() != 0) {
+			mols.get(0).center(); // We need to center because of PheSA-flex scoring, which doesn't work with non-centered molecules.
 			Canonizer canonizer = new Canonizer(mols.get(0), Canonizer.ENCODE_ATOM_SELECTION);
 			String idcode = canonizer.getIDCode() + " " + canonizer.getEncodedCoordinates();
 			configuration.setProperty(PROPERTY_QUERY, idcode);
@@ -526,11 +526,11 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 				if (mol.getAtoms() >= minAtoms && mol.getAtoms() <= maxAtoms) {
 					try {
 						mFragmentQueue.put(mol);
-						if (rowCount != -1)
-							updateProgress(++row);
 					} catch (InterruptedException ie) {}
 				}
 			}
+			if (rowCount != -1)
+				updateProgress(++row);
 		}
 
 		StereoMolecule empty = new StereoMolecule();
@@ -658,13 +658,18 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 					String idcoordsPheSARigid = modifiedQueryCanonizer.getEncodedCoordinates();
 
 					FlexibleShapeAlignment fsa = new FlexibleShapeAlignment(mQueryMol, modifiedQuery);
-					double phesaFlexScore = fsa.align()[0];
+					double phesaFlexScore = fsa.align()[0];	// returns 0 if it cannot align, e.g. because of inexistant forcefield parameters
+
+					if (phesaFlexScore == 0)
+						phesaFlexScore = Double.NaN;
+					modifiedQueryCanonizer.invalidateCoordinates();
 					String idcoordsPheSAFlex = modifiedQueryCanonizer.getEncodedCoordinates();
+
 					double energyDif = Double.isNaN(mmffEnergy) ? Double.NaN : getTotalEnergy(ff, modifiedQuery) - mmffEnergy;
 
-					// Especially when finding linkers for marked hydrogen atoms,
+					// When finding linkers for marked hydrogen atoms,
 					// phesaFlexScore should not be a cut-off criterion
-					if (mSeekLinker || phesaFlexScore > mMinPheSAFlex) {
+					if (mSeekLinker || Double.isNaN(phesaFlexScore) || phesaFlexScore >= mMinPheSAFlex) {
 						mPheSAFlexMatchCount.incrementAndGet();
 
 						Canonizer fragCanonizer = new Canonizer(fragment, Canonizer.ENCODE_ATOM_CUSTOM_LABELS);
@@ -772,15 +777,21 @@ public class DETaskReplaceAndLink3D extends ConfigurableTask implements ActionLi
 						+"]=0.23;height["+NEW_COLUMN_NAME[COORDS3D_RIGID_COLUMN]
 						+"]=0.23;height["+NEW_COLUMN_NAME[FRAGMENT_COORDS_COLUMN]+"]=0.23");
 
-				String title1 = mSeekLinker ? "RMDS" : "RMSD & PheSA-flex";
+				String title1 = "Fragment RMSD & Angle Divergence";
 				VisualizationPanel2D vpanel1 = mTargetFrame.getMainFrame().getMainPane().add2DView(title1, "Table\tbottom\t0.5");
-				vpanel1.setAxisColumnName(0, NEW_COLUMN_NAME[QUERY_RMSD_COLUMN]);
-				vpanel1.setAxisColumnName(1, NEW_COLUMN_NAME[mSeekLinker ? FRAGMENT_RMSD_COLUMN : PHESA_FLEX_COLUMN]);
+				vpanel1.setAxisColumnName(0, NEW_COLUMN_NAME[FRAGMENT_ANGLE_COLUMN]);
+				vpanel1.setAxisColumnName(1, NEW_COLUMN_NAME[FRAGMENT_RMSD_COLUMN]);
 				int colorListMode1 = VisualizationColor.cColorListModeHSBLong;
 				Color[] colorList1 = VisualizationColor.createColorWedge(Color.red, Color.blue, colorListMode1, null);
 				vpanel1.getVisualization().getMarkerColor().setColor(SCAFFOLD_SIM_COLUMN, colorList1, colorListMode1);
 
-				ExplanationView expView = mTargetFrame.getMainFrame().getMainPane().addExplanationView("Explanation", title1+"\tleft\t0.5");
+				String title2 = mSeekLinker ? "RMDS" : "RMSD & PheSA-flex";
+				VisualizationPanel2D vpanel2 = mTargetFrame.getMainFrame().getMainPane().add2DView(title2, title1 + "\tright\t0.5");
+				vpanel2.setAxisColumnName(0, NEW_COLUMN_NAME[QUERY_RMSD_COLUMN]);
+				vpanel2.setAxisColumnName(1, NEW_COLUMN_NAME[mSeekLinker ? FRAGMENT_RMSD_COLUMN : PHESA_FLEX_COLUMN]);
+				int colorListMode2 = VisualizationColor.cColorListModeHSBLong;
+				Color[] colorList2 = VisualizationColor.createColorWedge(Color.red, Color.blue, colorListMode2, null);
+				vpanel2.getVisualization().getMarkerColor().setColor(SCAFFOLD_SIM_COLUMN, colorList2, colorListMode2);
 			});
 		}
 		catch (Exception e) {}
