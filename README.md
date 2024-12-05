@@ -30,7 +30,7 @@ sudo apt-get install openjdk-17 maven bintuils fakeroot
 
 git clone https://github.com/thsa/fxmolviewer.git
 cd fxmolviewer
-mvn clean install "-DreleaseVersion=0.0.1-SNAPSHOT"
+mvn clean install
 
 cd ..
 git clone https://github.com/mjw99/datawarrior
