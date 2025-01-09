@@ -59,7 +59,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 
 	// IMPORTANT: When creating a new manual(!!!) installer (not an update for automatic deployment),
 	// then DataWarriorLauncher.BASE_VERSION must also be changed to match this DATAWARRIOR_VERSION!
-	public static final String DATAWARRIOR_VERSION = "v06.03.01";	// format must be v00.00.00
+	public static final String DATAWARRIOR_VERSION = "v06.04.01";	// format must be v00.00.00
 
 	private static final String PREFERENCES_2ND_POST_INSTALL_INFO_SERVER = "2nd_post_install_info_server";
 	public static final String PREFERENCES_POST_INSTALL_INFO_FAILURE_MILLIS = "post_install_info_failure_time";
@@ -96,6 +96,7 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 	private static final String PROPERTY_NEWS_IMAGE = "news_image_";
 	private static final String PROPERTY_NEWS_URL = "news_url_";
 	private static final String PROPERTY_NEWS_TYPE = "news_type_";
+	private static final String PROPERTY_NEWS_TILLDATE = "news_tilldate_";
 	private static final String PROPERTY_NEWS_OS = "news_os_";
 	private static final String PROPERTY_NEWS_MIN_VERSION = "news_minversion_";
 	private static final String PROPERTY_NEWS_MAX_VERSION = "news_maxversion_";
@@ -234,7 +235,8 @@ public class DEUpdateHandler extends JDialog implements ActionListener {
 				String image = sPostInstallInfo.getProperty(PROPERTY_NEWS_IMAGE.concat(newsID));
 				String url = sPostInstallInfo.getProperty(PROPERTY_NEWS_URL.concat(newsID));
 				String type = sPostInstallInfo.getProperty(PROPERTY_NEWS_TYPE.concat(newsID));
-				newsMap.put(newsID, new DENews(title, text, image, url, type));
+				String tillDate = sPostInstallInfo.getProperty(PROPERTY_NEWS_TILLDATE.concat(newsID));
+				newsMap.put(newsID, new DENews(title, text, image, url, type, tillDate));
 				}
 			}
 
