@@ -59,6 +59,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	private static final String PROPERTY_STRUCTURE_COLUMN = "structureColumn";
 	private static final String PROPERTY_CHEMPROPERTY_LIST = "propertyList";
 	private static final String PROPERTY_TARGET_COLUMN = "targetColumn";
+	private static final String PROPERTY_LARGEST_FRAGMENT = "largestFragment";
 
 	private static final int PREDICTOR_COUNT			= 9;
 	private static final int PREDICTOR_LOGP				= 0;
@@ -81,7 +82,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	private static final int PREDICTOR_FLAG_PAINS       	= (1 << PREDICTOR_PAINS);
 	private static final int PREDICTOR_FLAG_FLEXIBILITY		= (1 << PREDICTOR_FLEXIBILITY);
 
-	private static final int PROPERTY_COUNT = 70;
+	private static final int PROPERTY_COUNT = 71;
 
 	private static final int TOTAL_WEIGHT = 0;
 	private static final int FRAGMENT_WEIGHT = 1;
@@ -117,49 +118,50 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	private static final int METAL_ATOMS = 28;
 	private static final int NEGATIVE_ATOMS = 29;
 	private static final int STEREOCENTERS = 30;
-	private static final int ROTATABLE_BONDS = 31;
-	private static final int RING_CLOSURES = 32;
-	private static final int AROMATIC_ATOMS = 33;
-	private static final int SP3_CARBON_FRACTION = 34;
-	private static final int SP3_ATOMS = 35;
-	private static final int SYMMETRIC_ATOMS = 36;
+	private static final int AROMATIC_ATOMS = 31;
+	private static final int SP3_CARBON_FRACTION = 32;
+	private static final int SP3_ATOMS = 33;
+	private static final int SYMMETRIC_ATOMS = 34;
+	private static final int HEAVY_BONDS = 35;
+	private static final int ROTATABLE_BONDS = 36;
+	private static final int RING_CLOSURES = 37;
 
-	private static final int LARGEST_RING_SIZE = 37;
-	private static final int SMALL_RINGS = 38;
-	private static final int SMALL_CARBO_RINGS = 39;
-	private static final int SMALL_HETERO_RINGS = 40;
-	private static final int SATURATED_RINGS = 41;
-	private static final int NON_AROMATIC_RINGS = 42;
-	private static final int AROMATIC_RINGS = 43;
-	private static final int CARBO_SATURATED_RINGS = 44;
-	private static final int CARBO_NON_AROMATIC_RINGS = 45;
-	private static final int CARBO_AROMATIC_RINGS = 46;
-	private static final int HETERO_SATURATED_RINGS = 47;
-	private static final int HETERO_NON_AROMATIC_RINGS = 48;
-	private static final int HETERO_AROMATIC_RINGS = 49;
+	private static final int LARGEST_RING_SIZE = 38;
+	private static final int SMALL_RINGS = 39;
+	private static final int SMALL_CARBO_RINGS = 40;
+	private static final int SMALL_HETERO_RINGS = 41;
+	private static final int SATURATED_RINGS = 42;
+	private static final int NON_AROMATIC_RINGS = 43;
+	private static final int AROMATIC_RINGS = 44;
+	private static final int CARBO_SATURATED_RINGS = 45;
+	private static final int CARBO_NON_AROMATIC_RINGS = 46;
+	private static final int CARBO_AROMATIC_RINGS = 47;
+	private static final int HETERO_SATURATED_RINGS = 48;
+	private static final int HETERO_NON_AROMATIC_RINGS = 49;
+	private static final int HETERO_AROMATIC_RINGS = 50;
 
-	private static final int ALL_AMIDES = 50;
-	private static final int ALL_AMINES = 51;
-	private static final int ALKYL_AMINES = 52;
-	private static final int ARYL_AMINES = 53;
-	private static final int AROMATIC_NITROGEN = 54;
-	private static final int BASIC_NITROGEN = 55;
-	private static final int ACIDIC_OXYGEN = 56;
-	private static final int STEREO_CONFIGURATION = 57;
+	private static final int ALL_AMIDES = 51;
+	private static final int ALL_AMINES = 52;
+	private static final int ALKYL_AMINES = 53;
+	private static final int ARYL_AMINES = 54;
+	private static final int AROMATIC_NITROGEN = 55;
+	private static final int BASIC_NITROGEN = 56;
+	private static final int ACIDIC_OXYGEN = 57;
+	private static final int STEREO_CONFIGURATION = 58;
 
-	private static final int ACIDIC_PKA = 58;
-	private static final int BASIC_PKA = 59;
-	private static final int FRACTION_IA = 60;
-	private static final int FRACTION_IB = 61;
-	private static final int FRACTION_ZI = 62;
-	private static final int FRACTION_CHARGED = 63;
-	private static final int FRACTION_UNCHARGED = 64;
-	private static final int CHARGE74 = 65;
+	private static final int ACIDIC_PKA = 59;
+	private static final int BASIC_PKA = 60;
+	private static final int FRACTION_IA = 61;
+	private static final int FRACTION_IB = 62;
+	private static final int FRACTION_ZI = 63;
+	private static final int FRACTION_CHARGED = 64;
+	private static final int FRACTION_UNCHARGED = 65;
+	private static final int CHARGE74 = 66;
 
-	private static final int GLOBULARITY_SVD = 66;
-	private static final int GLOBULARITY_VOL = 67;
-	private static final int SURFACE_3D = 68;
-	private static final int VOLUME_3D = 69;
+	private static final int GLOBULARITY_SVD = 67;
+	private static final int GLOBULARITY_VOL = 68;
+	private static final int SURFACE_3D = 69;
+	private static final int VOLUME_3D = 70;
 
 	private static final Color[] TOX_COLOR_LIST = { Color.RED, Color.YELLOW, Color.GREEN };
 
@@ -167,7 +169,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 													"acceptors", "donors", "sasa", "rpsa", "tpsa", "druglikeness", "permeability",
 													"le", /*"se",*/ "lle", "lelp", "mutagenic", "tumorigenic", "reproEffective", "irritant", "nasty", "pains",
 													"shape", "flexibility", "complexity", "fragments", "heavyAtoms", "nonCHAtoms", "metalAtoms", "negAtoms",
-													"stereoCenters", "rotBonds", "closures", "aromAtoms", "sp3CFraction", "sp3Atoms", "symmetricAtoms",
+													"stereoCenters", "aromAtoms", "sp3CFraction", "sp3Atoms", "symmetricAtoms", "nonHBonds", "rotBonds", "closures",
 													"largestRing", "rings", "carbo", "heteroRings", "satRings", "nonAromRings", "aromRings", "carboSatRings", "carboNonAromRings", "carboAromRings",
 													"heteroSatRings", "heteroNonAromRings", "heteroAromRings",
 													"amides", "amines", "alkylAmines", "arylAmines", "aromN", "basicN", "acidicO", "stereoConfiguration",
@@ -184,8 +186,10 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	private ArrayList<DEPropertyOrder>	mPropertyOrderList;
 	private Object[]					mPredictor;
 	private volatile int				mIDCodeColumn,mFragFpColumn,mFlexophoreColumn,mPropertyIndex;
+	private volatile boolean			mIsLargestFragment;
 	private final int					mTargetColumn;
 	private JComboBox<String>			mComboBoxStructureColumn;
+	private JCheckBox					mCheckBoxLargestFragment;
 	private JTabbedPane					mTabbedPane;
 	private DEPropertyGUI[]				mPropertyGUI;
 	private AtomicInteger				mSMPRecordIndex,mSMPWorkingThreads,mSMPErrorCount;
@@ -225,7 +229,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			createPropertyMap();
 
 		int gap = HiDPIHelper.scale(8);
-		double[][] size1 = { {TableLayout.FILL, TableLayout.PREFERRED, gap/2, TableLayout.PREFERRED, TableLayout.FILL},
+		double[][] size1 = { {TableLayout.FILL, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, TableLayout.FILL, TableLayout.PREFERRED, TableLayout.FILL},
 							 {gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED } };
 
 		JPanel content = new JPanel();
@@ -242,6 +246,9 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			mComboBoxStructureColumn.setEditable(true);
 		content.add(new JLabel("Structure column:", JLabel.RIGHT), "1,1");
 		content.add(mComboBoxStructureColumn, "3,1");
+
+		mCheckBoxLargestFragment = new JCheckBox("LargestFragment Only");
+		content.add(mCheckBoxLargestFragment, "5,1");
 
 		mTabbedPane = new JTabbedPane();
 		mTabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -295,7 +302,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			mTabbedPane.add(TAB_GROUP[tab], cbp);
 			}
 
-		content.add(mTabbedPane, "0,3,4,3");
+		content.add(mTabbedPane, "0,3,6,3");
 		return content;
 		}
 
@@ -313,6 +320,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 		configuration.setProperty(PROPERTY_STRUCTURE_COLUMN, mTableModel.getColumnTitleNoAlias(mIDCodeColumn));
 		configuration.setProperty(PROPERTY_CHEMPROPERTY_LIST, PROPERTY_CODE[mPropertyIndex]);
 		configuration.setProperty(PROPERTY_TARGET_COLUMN, mTableModel.getColumnTitleNoAlias(mTargetColumn));
+		configuration.setProperty(PROPERTY_LARGEST_FRAGMENT, "true");
 		return configuration;
 		}
 
@@ -321,11 +329,12 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 		Properties configuration = new Properties();
 
 		configuration.put(PROPERTY_STRUCTURE_COLUMN, mTableModel.getColumnTitleNoAlias((String)mComboBoxStructureColumn.getSelectedItem()));
+		configuration.put(PROPERTY_LARGEST_FRAGMENT, mCheckBoxLargestFragment.isSelected() ? "true" : "false");
 
 		StringBuilder codeList = new StringBuilder();
 		for (int i=0; i<mPropertyGUI.length; i++) {
 			if (mPropertyGUI[i].getCheckBox().isEnabled() && mPropertyGUI[i].getCheckBox().isSelected()) {
-				if (codeList.length() != 0)
+				if (!codeList.isEmpty())
 					codeList.append(CHEMPROPERTY_LIST_SEPARATOR);
 
 				codeList.append(PROPERTY_CODE[i]);
@@ -349,6 +358,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			mComboBoxStructureColumn.setSelectedIndex(0);
 		else if (!isInteractive())
 			mComboBoxStructureColumn.setSelectedItem("Structure");
+		mCheckBoxLargestFragment.setSelected(true);
 
 		for (int i=0; i<mPropertyGUI.length; i++) {
 			mPropertyGUI[i].getCheckBox().setSelected(false);
@@ -369,7 +379,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	@Override
 	public void setDialogConfiguration(Properties configuration) {
 		String value = configuration.getProperty(PROPERTY_STRUCTURE_COLUMN, "");
-		if (value.length() != 0) {
+		if (!value.isEmpty()) {
 			int column = mTableModel.findColumn(value);
 			if (column != -1)
 				mComboBoxStructureColumn.setSelectedItem(mTableModel.getColumnTitle(column));
@@ -381,6 +391,8 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 		else if (!isInteractive()) {
 			mComboBoxStructureColumn.setSelectedItem("Structure");
 			}
+
+		mCheckBoxLargestFragment.setSelected(!"false".equals(configuration.getProperty(PROPERTY_LARGEST_FRAGMENT)));
 
 		for (int i=0; i<mPropertyGUI.length; i++)
 			mPropertyGUI[i].getCheckBox().setSelected(false);
@@ -547,12 +559,13 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 		addProperty(METAL_ATOMS, 2, "Metal-Atoms", "Metal-Atom Count");
 		addProperty(NEGATIVE_ATOMS, 2, "Electronegative Atoms", "Electronegative Atom Count (N, O, P, S, F, Cl, Br, I, As, Se)");
 		addProperty(STEREOCENTERS, 2, "Stereo Centers", "Stereo Center Count");
-		addProperty(ROTATABLE_BONDS, 2, "Rotatable Bonds", "Rotatable Bond Count");
-		addProperty(RING_CLOSURES, 2, "Rings Closures", "Ring Closure Count");
 		addProperty(AROMATIC_ATOMS, 2, "Aromatic Atoms", "Aromatic Atom Count");
 		addProperty(SP3_CARBON_FRACTION, 2, "sp3-Carbon Fraction", "sp3-Carbon Count / Total Carbon Count");
 		addProperty(SP3_ATOMS, 2, "sp3-Atoms", "sp3-Atom Count (Considering C,N,O,P,S)");
 		addProperty(SYMMETRIC_ATOMS, 2, "Symmetric atoms", "Symmetric Atom Count");
+		addProperty(HEAVY_BONDS, 2, "Non-H Bonds", "Non-Hydrogen Bond Count");
+		addProperty(ROTATABLE_BONDS, 2, "Rotatable Bonds", "Rotatable Bond Count");
+		addProperty(RING_CLOSURES, 2, "Rings Closures", "Ring Closure Count");
 
 		addProperty(LARGEST_RING_SIZE, 3, "Largest Ring Size", "The size of the largest of these rings: For every bond the smallest ring of which the bond is member of.");
 		addProperty(SMALL_RINGS, 3, "Small Rings", "Small Ring Count (all rings up to 7 members)");
@@ -617,6 +630,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 	@Override
 	public void runTask(Properties configuration) {
 		mIDCodeColumn = selectStructureColumn(configuration);
+		mIsLargestFragment = !"false".equals(configuration.getProperty(PROPERTY_LARGEST_FRAGMENT));
 
 		String value = configuration.getProperty(PROPERTY_CHEMPROPERTY_LIST);
 		if (value == null) {
@@ -837,9 +851,10 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 			case METAL_ATOMS:
 			case NEGATIVE_ATOMS:
 			case STEREOCENTERS:
+			case HEAVY_BONDS:
 			case ROTATABLE_BONDS:
-			case FRAGMENTS:
 			case RING_CLOSURES:
+			case FRAGMENTS:
 			case LARGEST_RING_SIZE:
 			case SMALL_RINGS:
 			case AROMATIC_RINGS:
@@ -1042,6 +1057,9 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 				break;
 			case STEREOCENTERS:
 				value = mol.getStereoCenterCount();
+				break;
+			case HEAVY_BONDS:
+				value = mol.getBonds();
 				break;
 			case ROTATABLE_BONDS:
 				value = mol.getRotatableBondCount();
@@ -1599,7 +1617,7 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 		public StereoMolecule mol;
 		public chemaxon.struc.Molecule camol;
 		public TreeMap<Integer, Double> cache;
-		private int row;
+		private final int row;
 		private ConformerSet conformerSet;
 
 		public RowInfo(int row, StereoMolecule containerMol) {
@@ -1618,7 +1636,8 @@ public class DETaskCalculateChemicalProperties extends ConfigurableTask {
 							}
 						}
 
-					mol.stripSmallFragments(true);
+					if (mIsLargestFragment)
+						mol.stripSmallFragments(true);
 					if (mPredictor[PREDICTOR_PKA] != null)
 						camol = ((PKaPredictor)mPredictor[PREDICTOR_PKA]).convert(mol);
 					}
