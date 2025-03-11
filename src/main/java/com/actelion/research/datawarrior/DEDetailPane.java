@@ -211,6 +211,9 @@ public class DEDetailPane extends JMultiPanelView implements HighlightListener,C
 
 	protected void addColumnDetailViews(int firstColumn) {
 		for (int column = firstColumn; column < mTableModel.getTotalColumnCount(); column++) {
+			if ("none".equals(mTableModel.getColumnProperty(column, CompoundTableConstants.cColumnPropertyDetailView)))
+				continue;
+
 			String columnName = mTableModel.getColumnTitleNoAlias(column);
 			String specialType = mTableModel.getColumnSpecialType(column);
 			if (CompoundTableModel.cColumnTypeIDCode.equals(specialType)) {
@@ -244,12 +247,13 @@ public class DEDetailPane extends JMultiPanelView implements HighlightListener,C
 				String ligand = showLigand ? mTableModel.getColumnProperty(column, CompoundTableConstants.cColumnPropertyNaturalLigand) : null;
 				StereoMolecule ligandMol = (ligand == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(ligand);
 				if (cavityMol != null)
-					view.setProteinCavity(cavityMol, ligandMol, true);
+					view.setProteinCavity(cavityMol, ligandMol, true, false);
 				if (ligandMol != null)
 					view.setOverlayMolecule(ligandMol);
 
 				addColumnDetailView(view, mTableModel.getParentColumn(column), column, TYPE_STRUCTURE_3D, mTableModel.getColumnTitle(column));
 				view.setPopupMenuController(new CompoundRecordMenuController(view, mTableModel, column, true));
+				view.setAnimate(true);
 				continue;
 			}
 			if (columnName.equalsIgnoreCase("imagefilename")
@@ -351,9 +355,10 @@ public class DEDetailPane extends JMultiPanelView implements HighlightListener,C
 			case TYPE_STRUCTURE_3D -> {
 				boolean isSuperpose = CompoundTableConstants.cSuperposeValueReferenceRow.equals(mTableModel.getColumnProperty(viewInfo.detail, CompoundTableConstants.cColumnPropertySuperpose));
 				boolean isAlign = CompoundTableConstants.cSuperposeAlignValueShape.equals(mTableModel.getColumnProperty(viewInfo.detail, CompoundTableConstants.cColumnPropertySuperposeAlign));
+				int cavityColumn = mTableModel.findColumn(mTableModel.getColumnProperty(viewInfo.detail, CompoundTableConstants.cColumnPropertyProteinCavityColumn));
 				CompoundRecordMenuController controller = (CompoundRecordMenuController)((JFXMolViewerPanel)viewInfo.view).getPopupMenuController();
 				controller.setParentRecord(mHighlightedRecord);
-				controller.update3DView(isSuperpose, isAlign);
+				controller.update3DView(isSuperpose, isAlign, cavityColumn);
 			}
 			case TYPE_REACTION -> {
 				Reaction rxn = null;

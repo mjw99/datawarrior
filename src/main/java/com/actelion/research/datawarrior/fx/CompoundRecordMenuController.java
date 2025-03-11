@@ -26,6 +26,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 	private CompoundRecord mParentRecord;
 	private int mCoordsColumn;
 	private final boolean mAllowSuperposeReference;
+	private volatile Thread mUpdateThread;
 
 	/**
 	 * This controller adds menu items and functionality to 3D-Views in the detail area or in form views.
@@ -86,7 +87,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 			if (mAllowSuperposeReference) {
 				javafx.scene.control.CheckMenuItem itemSuperpose = new CheckMenuItem("Show Reference Row Structure");
 				itemSuperpose.setSelected(isSuperpose);
-				itemSuperpose.setOnAction(e -> setSuperposeMode(!isSuperpose, isShapeAlign));
+				itemSuperpose.setOnAction(e -> setSuperposeMode(!isSuperpose, isShapeAlign, -1));
 				popup.getItems().add(itemSuperpose);
 			}
 
@@ -95,7 +96,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 				javafx.scene.control.CheckMenuItem itemAlignShape = new CheckMenuItem("Align Shown Structures");
 				itemAlignShape.setSelected(isShapeAlign);
 				itemAlignShape.setDisable(false);
-				itemAlignShape.setOnAction(e -> setSuperposeMode(isSuperpose, !isShapeAlign));
+				itemAlignShape.setOnAction(e -> setSuperposeMode(isSuperpose, !isShapeAlign, -1));
 				popup.getItems().add(itemAlignShape);
 			}
 
@@ -113,7 +114,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 	}
 
 	@Override
-	public void markCropDistanceForSurface(V3DMolecule fxmol, int type, V3DMolecule.SurfaceMode mode) {
+	public void markCropDistanceForSurface(V3DMolecule fxmol, int type, int mode) {
 		boolean hasCavity = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyProteinCavity) != null;
 		boolean hasLigand = mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyNaturalLigand) != null;
 		if (hasLigand && hasCavity && fxmol.getRole() == V3DMolecule.MoleculeRole.MACROMOLECULE) {
@@ -122,13 +123,13 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 		}
 	}
 
-	private void setSuperposeMode(boolean isSuperpose, boolean isShapeAlign) {
+	private void setSuperposeMode(boolean isSuperpose, boolean isShapeAlign, int cavityColumn) {
 		SwingUtilities.invokeLater(() -> {
 			HashMap<String, String> map = new HashMap<>();
 			map.put(CompoundTableConstants.cColumnPropertySuperpose, isSuperpose ? CompoundTableConstants.cSuperposeValueReferenceRow : null);
 			map.put(CompoundTableConstants.cColumnPropertySuperposeAlign, isShapeAlign ? CompoundTableConstants.cSuperposeAlignValueShape : null);
 			new DETaskSetColumnProperties(getFrame(), mCoordsColumn, map, false).defineAndRun();
-			update3DView(isSuperpose, isShapeAlign);
+			update3DView(isSuperpose, isShapeAlign, cavityColumn);
 		});
 	}
 
@@ -171,9 +172,13 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 	/**
 	 * @param isSuperpose whether the active row's conformer shall be shown in addition
 	 * @param isAlign whether the shown conformer(s) shall be rigidly aligned to the active row's conformer (if shown)
+	 * @param cavityColumn -1 or coords3D column of cavity column that is assigned to this controller's ligand column to complete a binding site structure
 	 */
-	public void update3DView(boolean isSuperpose, boolean isAlign) {
-		new Thread(() -> {
+	public void update3DView(boolean isSuperpose, boolean isAlign, int cavityColumn) {
+		mUpdateThread = new Thread(() -> {
+			// cancel all FX-threads that work on older updates, because a new one is on its way
+			mConformerPanel.increaseUpdateID();
+
 			StereoMolecule[] rowMol = null;
 			if (mParentRecord != null)
 				rowMol = getConformers(mCoordsColumn, mParentRecord, true);
@@ -187,6 +192,9 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 				if (isAlign && refMol != null) {
 					double maxFit = 0;
 					for (StereoMolecule stereoMolecule : rowMol) {
+						if (Thread.currentThread() != mUpdateThread)
+							break;
+
 						double fit = PheSAAlignmentOptimizer.alignTwoMolsInPlace(refMol[0], stereoMolecule);
 						if (fit>maxFit) {
 							maxFit = fit;
@@ -199,8 +207,17 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 				}
 			}
 
-			mConformerPanel.updateConformers(rowMol, refMol == null ? null : refMol[0]);
-		}).start();
+			if (cavityColumn != -1 && mParentRecord != null && Thread.currentThread() == mUpdateThread) {
+				StereoMolecule[] cavity = getConformers(cavityColumn, mParentRecord, false);
+				mConformerPanel.clear();
+				mConformerPanel.setProteinCavity(cavity == null || cavity.length==0 ? null : cavity[0], rowMol == null ? null : rowMol[0], true, true);
+			}
+
+			if (Thread.currentThread() == mUpdateThread)
+				mConformerPanel.updateConformers(rowMol, refMol == null ? null : refMol[0]);
+		});
+
+		mUpdateThread.start();
 	}
 
 	private StereoMolecule[] getConformers(int coordsColumn, CompoundRecord record, boolean allowMultiple) {
