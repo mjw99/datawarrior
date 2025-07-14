@@ -5,7 +5,7 @@ import com.actelion.research.chem.IDCodeParserWithoutCoordinateInvention;
 import com.actelion.research.chem.SSSearcher;
 import com.actelion.research.chem.StereoMolecule;
 import com.actelion.research.chem.alignment3d.PheSAAlignmentOptimizer;
-import com.actelion.research.chem.conf.AtomAssembler;
+import com.actelion.research.chem.conf.HydrogenAssembler;
 import com.actelion.research.chem.forcefield.mmff.ForceFieldMMFF94;
 import com.actelion.research.chem.io.CompoundTableConstants;
 import com.actelion.research.chem.mcs.MCS;
@@ -259,7 +259,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 	private void setShowNaturalLigand(boolean isShowNaturalLigand) {
 		String ligand = isShowNaturalLigand ? mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertyNaturalLigand) : null;
 		StereoMolecule ligandMol = (ligand == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(ligand);
-		mConformerPanel.setOverlayMolecule(ligandMol);
+		mConformerPanel.setOverlayMolecule(ligandMol, true);
 		SwingUtilities.invokeLater(() -> {
 			HashMap<String, String> map = new HashMap<>();
 			map.put(CompoundTableConstants.cColumnPropertyShowNaturalLigand, isShowNaturalLigand ? null : "false");
@@ -271,8 +271,8 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 		String query = isShowQuery ? mTableModel.getColumnProperty(mCoordsColumn, CompoundTableConstants.cColumnPropertySuperposeMolecule) : null;
 		StereoMolecule queryMol = (query == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(query);
 		if (queryMol != null)
-			new AtomAssembler(queryMol).addImplicitHydrogens();
-		mConformerPanel.setOverlayMolecule(queryMol);
+			new HydrogenAssembler(queryMol).addImplicitHydrogens();
+		mConformerPanel.setOverlayMolecule(queryMol, true);
 		SwingUtilities.invokeLater(() -> {
 			HashMap<String, String> map = new HashMap<>();
 			map.put(CompoundTableConstants.cColumnPropertyShowSuperposeMolecule, isShowQuery ? null : "false");
