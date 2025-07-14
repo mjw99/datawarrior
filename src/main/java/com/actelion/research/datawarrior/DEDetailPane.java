@@ -19,7 +19,7 @@
 package com.actelion.research.datawarrior;
 
 import com.actelion.research.chem.*;
-import com.actelion.research.chem.conf.AtomAssembler;
+import com.actelion.research.chem.conf.HydrogenAssembler;
 import com.actelion.research.chem.descriptor.DescriptorConstants;
 import com.actelion.research.chem.descriptor.flexophore.FlexophoreAtomContributionColors;
 import com.actelion.research.chem.io.CompoundTableConstants;
@@ -237,8 +237,8 @@ public class DEDetailPane extends JMultiPanelView implements HighlightListener,C
 				String overlay = mTableModel.getColumnProperty(column, CompoundTableConstants.cColumnPropertySuperposeMolecule);
 				StereoMolecule overlayMol = (overlay == null) ? null : new IDCodeParserWithoutCoordinateInvention().getCompactMolecule(overlay);
 				if (overlayMol != null) {
-					new AtomAssembler(overlayMol).addImplicitHydrogens();
-					view.setOverlayMolecule(overlayMol);
+					new HydrogenAssembler(overlayMol).addImplicitHydrogens();
+					view.setOverlayMolecule(overlayMol, true);
 					}
 
 				String cavity = mTableModel.getColumnProperty(column, CompoundTableConstants.cColumnPropertyProteinCavity);
@@ -249,7 +249,7 @@ public class DEDetailPane extends JMultiPanelView implements HighlightListener,C
 				if (cavityMol != null)
 					view.setProteinCavity(cavityMol, ligandMol, true, false);
 				if (ligandMol != null)
-					view.setOverlayMolecule(ligandMol);
+					view.setOverlayMolecule(ligandMol, cavityMol == null);
 
 				addColumnDetailView(view, mTableModel.getParentColumn(column), column, TYPE_STRUCTURE_3D, mTableModel.getColumnTitle(column));
 				view.setPopupMenuController(new CompoundRecordMenuController(view, mTableModel, column, true));

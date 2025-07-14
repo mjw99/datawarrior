@@ -142,12 +142,9 @@ public class InchiBuilder {
 					else {  // our parity is based on the four atom indexes
 						Arrays.sort(c);
 						}
-					InchiAtom[] a = new InchiAtom[4];
-					for (int i=0; i<4; i++)
-						a[i] = inchiAtom[c[i]];
 
 					InchiStereoParity inchiParity = (parity == Molecule.cAtomParity1) ? InchiStereoParity.EVEN : InchiStereoParity.ODD;
-					input.addStereo(InchiStereo.createTetrahedralStereo(inchiAtom[atom], a[0], a[1], a[2], a[3], inchiParity));
+					input.addStereo(InchiStereo.createTetrahedralStereo(inchiAtom[atom], inchiAtom[c[0]], inchiAtom[c[1]], inchiAtom[c[2]], inchiAtom[c[3]], inchiParity));
 					}
 				}
 			}

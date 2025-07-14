@@ -548,7 +548,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 	 * Adds the given small molecule into the scene.
 	 * @param mol
 	 */
-	public void setOverlayMolecule(StereoMolecule mol) {
+	public void setOverlayMolecule(StereoMolecule mol, boolean optimizeView) {
 		Platform.runLater(() -> {
 			boolean changed = false;
 			if (mOverlayMol != null) {
@@ -563,8 +563,11 @@ public class JFXMolViewerPanel extends JFXPanel {
 				mScene.addMolecule(mOverlayMol, false);
 				changed = true;
 			}
-			if (changed)
+			if (changed) {
+				if (optimizeView)
+					mScene.optimizeView();
 				SwingUtilities.invokeLater(() -> fireStructureChanged());
+			}
 		});
 	}
 
@@ -639,7 +642,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 				if (mayInterrupt && updateID != mCurrentUpdateID)
 					return;
 
-				mScene.reviveAnimation();	// just in case, there was a stopped anumation
+				mScene.reviveAnimation();	// just in case, there was a stopped animation
 				mScene.setShowInteractions(true);
 			}
 

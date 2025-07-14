@@ -215,13 +215,14 @@ public class StandardTaskFactory {
 			 : codeMatches(taskCode, DETaskPaste.TASK_NAME) ? new DETaskPaste(frame, application, -1)
 			 : codeMatches(taskCode, DETaskPasteMacro.TASK_NAME) ? new DETaskPasteMacro(application)
 			 : codeMatches(taskCode, DETaskPasteIntoTable.TASK_NAME) ? new DETaskPasteIntoTable(frame)
+			 : codeMatches(taskCode, DETaskPerformReaction.TASK_NAME) ? new DETaskPerformReaction(frame)
 			 : codeMatches(taskCode, DETaskPredictMissingValues.TASK_NAME) ? new DETaskPredictMissingValues(frame)
 			 : codeMatches(taskCode, DETaskRelocateView.TASK_NAME) ? new DETaskRelocateView(frame, mainPane, null, null, -1)
 			 : codeMatches(taskCode, DETaskRemoveAllFilters.TASK_NAME) ? new DETaskRemoveAllFilters(frame)
 			 : codeMatches(taskCode, DETaskRemoveSelectionFromList.TASK_NAME) ? new DETaskRemoveSelectionFromList(frame, -1)
 			 : codeMatches(taskCode, DETaskRenameView.TASK_NAME) ? new DETaskRenameView(frame, mainPane, null)
 			 : codeMatches(taskCode, DETaskRepeatNextTask.TASK_NAME) ? new DETaskRepeatNextTask(frame)
-			 : codeMatches(taskCode, DETaskReplaceAndLink3D.TASK_NAME) ? new DETaskReplaceAndLink3D(frame)
+			 : codeMatches(taskCode, DETaskReplace3DFragment.TASK_NAME) ? new DETaskReplace3DFragment(frame)
 			 : codeMatches(taskCode, DETaskRetrieveDataFromURL.TASK_NAME) ? new DETaskRetrieveDataFromURL(frame, application)
 			 : codeMatches(taskCode, DETaskRetrieveWikipediaCompounds.TASK_NAME) ? new DETaskRetrieveWikipediaCompounds(frame, application)
 			 : codeMatches(taskCode, DETaskResetAllFilters.TASK_NAME) ? new DETaskResetAllFilters(frame)
@@ -457,13 +458,14 @@ public class StandardTaskFactory {
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_EDIT, DETaskPaste.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_EDIT, DETaskPasteIntoTable.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskPasteMacro.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskPerformReaction.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskPredictMissingValues.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskRelocateView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILTER, DETaskRemoveAllFilters.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_LIST, DETaskRemoveSelectionFromList.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_VIEW, DETaskRenameView.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_MACRO, DETaskRepeatNextTask.TASK_NAME));
-			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskReplaceAndLink3D.TASK_NAME));
+			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_CHEMISTRY, DETaskReplace3DFragment.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskRetrieveDataFromURL.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_DATABASE, DETaskRetrieveWikipediaCompounds.TASK_NAME));
 			mTaskDictionary.add(new TaskSpecification(TaskSpecification.CATEGORY_FILTER, DETaskResetAllFilters.TASK_NAME));

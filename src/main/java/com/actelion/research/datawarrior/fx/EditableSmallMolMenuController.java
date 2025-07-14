@@ -4,7 +4,7 @@ import com.actelion.research.chem.MolecularFormula;
 import com.actelion.research.chem.Molecule3D;
 import com.actelion.research.chem.MolfileParser;
 import com.actelion.research.chem.StereoMolecule;
-import com.actelion.research.chem.conf.AtomAssembler;
+import com.actelion.research.chem.conf.HydrogenAssembler;
 import com.actelion.research.chem.io.Mol2FileParser;
 import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
@@ -88,7 +88,7 @@ public class EditableSmallMolMenuController implements V3DPopupMenuController {
 					}
 
 					if (mol != null && mol.getAllAtoms() != 0) {
-						new AtomAssembler(mol).addImplicitHydrogens();
+						new HydrogenAssembler(mol).addImplicitHydrogens();
 						mol.center();
 						V3DScene scene = mConformerPanel.getV3DScene();
 						V3DMolecule mol3D = new V3DMolecule(mol, true, scene.isSplitAllBonds());
@@ -167,7 +167,9 @@ public class EditableSmallMolMenuController implements V3DPopupMenuController {
 				File pdbFile = null;
 				if (fromRemote) {
 					mPDBCode = JOptionPane.showInputDialog(mConformerPanel, "PDB Entry Code?");
-					if (mPDBCode == null || mPDBCode.isEmpty())
+					if (mPDBCode.trim().isEmpty())
+						mPDBCode = null;
+					if (mPDBCode == null)
 						return;
 				}
 				else {
@@ -181,10 +183,10 @@ public class EditableSmallMolMenuController implements V3DPopupMenuController {
 					PDBCoordEntryFile entryFile;
 					if (mPDBCode != null) {
 						try {
-							entryFile = parser.getFromPDB(mPDBCode);
+							entryFile = parser.getFromPDB(mPDBCode.trim());
 						}
 						catch (Exception e) {
-							showMessageInEDT("Couldn't retrieve pdb-file of '"+mPDBCode+"' from PDB-database:\n"+e.getMessage()+"\nYou may try to download it manually from 'www.rcsb.org'.");
+							showMessageInEDT("Couldn't retrieve pdb-file of '"+mPDBCode.trim()+"' from PDB-database:\n"+e.getMessage()+"\nYou may try to download it manually from 'www.rcsb.org'.");
 							e.printStackTrace();
 							return;
 						}
@@ -221,7 +223,7 @@ public class EditableSmallMolMenuController implements V3DPopupMenuController {
 						if (index != -1 && ligands.get(index).getAllAtoms() != 0) {
 							final Molecule3D ligand = ligands.get(index);
 							Platform.runLater(() -> {
-								new AtomAssembler(ligand).addImplicitHydrogens();
+								new HydrogenAssembler(ligand).addImplicitHydrogens();
 
 								V3DMolecule mol3D = new V3DMolecule(ligand, MoleculeArchitect.CONSTRUCTION_MODE_STICKS, MoleculeArchitect.HYDROGEN_MODE_ALL, 0, V3DMolecule.MoleculeRole.LIGAND, true, false);
 								if (mMoleculeColor != null)
