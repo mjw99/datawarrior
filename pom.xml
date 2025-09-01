@@ -31,7 +31,7 @@
 
 		to check for updates for these below -->
 
-		<openchemlib.version>2025.7.1</openchemlib.version>
+		<openchemlib.version>2025.8.5</openchemlib.version>
 		<fxmolviewer.version>1.0.0-SNAPSHOT</fxmolviewer.version>
 		<radiance.version>8.0.0</radiance.version>
 		<opsin.version>2.8.0</opsin.version>
