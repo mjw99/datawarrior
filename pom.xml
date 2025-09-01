@@ -7,7 +7,7 @@
 
 	<groupId>com.actelion.research.datawarrior</groupId>
 	<artifactId>datawarrior</artifactId>
-	<version>6.4.3-SNAPSHOT</version>
+	<version>6.5.2-SNAPSHOT</version>
 
 	<name>datawarrior</name>
 	<url>https://github.com/thsa/datawarrior</url>
