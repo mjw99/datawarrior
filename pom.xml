@@ -53,7 +53,7 @@
 		<ojdbc11.version>23.8.0.25.04</ojdbc11.version>
 		<postgresql.version>42.7.7</postgresql.version>
 		<mysql-connector-java.version>9.3.0</mysql-connector-java.version>
-		<mssql-jdbc.version>12.10.0.jre11</mssql-jdbc.version>
+		<mssql-jdbc.version>13.2.0.jre11</mssql-jdbc.version>
 		<!-- End DB drivers -->
 
 		<!-- Use:
