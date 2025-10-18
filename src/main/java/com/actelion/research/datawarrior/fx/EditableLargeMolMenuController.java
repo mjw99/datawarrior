@@ -4,7 +4,7 @@ import com.actelion.research.chem.*;
 import com.actelion.research.chem.conf.HydrogenAssembler;
 import com.actelion.research.chem.io.Mol2FileParser;
 import com.actelion.research.chem.io.pdb.mmcif.MMCIFParser;
-import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
+import com.actelion.research.chem.io.pdb.parser.PDBFileEntry;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
 import com.actelion.research.chem.io.pdb.parser.StructureAssembler;
 import com.actelion.research.gui.FileHelper;
@@ -147,15 +147,17 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 		catch (Exception ie) {}
 	}
 
-	private void addProteinAndLigand(PDBCoordEntryFile entryFile) {
-		Map<String, List<Molecule3D>> map = entryFile.extractMols(false);
+	private void addProteinAndLigand(PDBFileEntry entryFile) {
+		Map<String, List<Molecule3D>> map = entryFile.extractMols(true);
 		List<Molecule3D> ligands = map.get(StructureAssembler.LIGAND_GROUP);
-		if (ligands == null || ligands.isEmpty()) {
-			map = entryFile.extractMols(true);
-			ligands = map.get(StructureAssembler.LIGAND_GROUP);
-			if (ligands != null && !ligands.isEmpty())
-				JOptionPane.showMessageDialog(mConformerPanel, "Only covalent ligand(s) were found and disconnected from the protein structure.");
-		}
+
+		int covalentCount = 0;
+		if (ligands != null)
+			for (Molecule3D ligand : ligands)
+				if (ligand.isCovalentLigand())
+					covalentCount++;
+		if (covalentCount != 0)
+			JOptionPane.showMessageDialog(mConformerPanel, covalentCount+" of "+ligands.size()+" ligands were covalently bound and disconnected from the protein structure.");
 
 		List<Molecule3D> proteins = map.get(StructureAssembler.PROTEIN_GROUP);
 
