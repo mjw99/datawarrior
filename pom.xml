@@ -50,10 +50,10 @@
 		<commons-compiler.version>2.7.4</commons-compiler.version>
 
 		<!-- DB drivers -->
-		<ojdbc11.version>23.9.0.25.07</ojdbc11.version>
-		<postgresql.version>42.7.7</postgresql.version>
-		<mysql-connector-java.version>9.4.0</mysql-connector-java.version>
-		<mssql-jdbc.version>13.2.0.jre11</mssql-jdbc.version>
+		<ojdbc11.version>23.26.0.0.0</ojdbc11.version>
+		<postgresql.version>42.7.8</postgresql.version>
+		<mysql-connector-java.version>9.5.0</mysql-connector-java.version>
+		<mssql-jdbc.version>13.2.1.jre11</mssql-jdbc.version>
 		<!-- End DB drivers -->
 
 		<!-- Use:
