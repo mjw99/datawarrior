@@ -144,14 +144,14 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 				popup.getItems().addAll(new SeparatorMenuItem(), itemAlignShape, itemAlignMCS);
 			}
 
-			if (hasCavity) {
-				boolean isShowInteractions = (hasLigand && mConformerPanel.getV3DScene().isShowInteractions());
-				javafx.scene.control.CheckMenuItem itemShowInteractions = new CheckMenuItem("Show Interactions");
-				itemShowInteractions.setSelected(isShowInteractions);
-				itemShowInteractions.setDisable(!hasLigand);
-				itemShowInteractions.setOnAction(e -> setShowInteractions(!isShowInteractions));
-				popup.getItems().add(itemShowInteractions);
-			}
+//			if (hasCavity) {
+//				boolean isShowInteractions = (hasLigand && mConformerPanel.getV3DScene().isShowInteractions());
+//				javafx.scene.control.CheckMenuItem itemShowInteractions = new CheckMenuItem("Show Interactions");
+//				itemShowInteractions.setSelected(isShowInteractions);
+//				itemShowInteractions.setDisable(!hasLigand);
+//				itemShowInteractions.setOnAction(e -> setShowInteractions(!isShowInteractions));
+//				popup.getItems().add(itemShowInteractions);
+//			}
 
 			// TODO remove this and the following TEMPLATE
 			if (System.getProperty("development") != null) {
@@ -165,8 +165,7 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 							options.put("dielectric constant", Double.valueOf(80.0));
 							ForceFieldMMFF94.initialize(ForceFieldMMFF94.MMFF94SPLUS);
 							ForceFieldMMFF94 ff = new ForceFieldMMFF94(mol[0], ForceFieldMMFF94.MMFF94SPLUS, options);
-							if (!Double.isNaN(ff.getTotalEnergy(detail))) {
-								System.out.println("worked");
+							if (!Double.isNaN(ff.getTotalEnergy(detail, false))) {
 								SwingUtilities.invokeLater(() -> {
 									StringSelection theData = new StringSelection(detail.toString());
 									Toolkit.getDefaultToolkit().getSystemClipboard().setContents(theData, theData);
@@ -288,10 +287,6 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 		return (DEFrame)c;
 	}
 
-	private void setShowInteractions(boolean showInteractions) {
-		mConformerPanel.getV3DScene().setShowInteractions(showInteractions);
-	}
-
 	/**
 	 * @param isSuperposeRefRow whether the active row's conformer shall be shown in addition
 	 * @param alignmentMethod whether and how the shown conformer(s) shall be rigidly aligned to the active row's conformer (if shown)
@@ -387,8 +382,8 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 						Coordinates[] staticCoords = new Coordinates[staticMatch.length];
 						Coordinates[] movingCoords = new Coordinates[staticMatch.length];
 						for (int i=0; i<staticMatch.length; i++) {
-							staticCoords[i] = staticMol.getCoordinates(staticMatch[i]);
-							movingCoords[i] = movingMol.getCoordinates(movingMatch[i]);
+							staticCoords[i] = staticMol.getAtomCoordinates(staticMatch[i]);
+							movingCoords[i] = movingMol.getAtomCoordinates(movingMatch[i]);
 						}
 						// make sure the value is positive and increases with the quality of fit
 						return 1000 - alignAndGetRMSD(staticCoords, movingCoords, movingMol);
@@ -404,7 +399,8 @@ public class CompoundRecordMenuController implements V3DPopupMenuController {
 		Coordinates movingCOG = FragmentGeometry3D.centerOfGravity(movingCoords);
 		double[][] matrix = FragmentGeometry3D.kabschAlign(staticCoords, movingCoords, staticCOG, movingCOG);
 
-		for (Coordinates c : mol.getAtomCoordinates()) {
+		for (int atom=0; atom<mol.getAllAtoms(); atom++) {
+			Coordinates c = mol.getAtomCoordinates(atom);
 			c.sub(movingCOG);
 			c.rotate(matrix);
 			c.add(staticCOG);

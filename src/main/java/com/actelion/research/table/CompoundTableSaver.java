@@ -110,7 +110,7 @@ public class CompoundTableSaver implements CompoundTableConstants,Runnable {
 	 */
 	public void saveText(File file) {
 		mRuntimeProperties = null;
-		mDataType = ((FileHelper.getFileType(file.getName()) & FileHelper.cFileTypeTextAnyCSV) != 0) ?
+		mDataType = ((FileHelper.getFileType(file) & FileHelper.cFileTypeTextAnyCSV) != 0) ?
 				FileHelper.cFileTypeTextCommaSeparated : FileHelper.cFileTypeTextTabDelimited;  // no '|' or ';' for now!
 		mFile = file;
 		mVisibleOnly = false;
@@ -534,7 +534,7 @@ public class CompoundTableSaver implements CompoundTableConstants,Runnable {
 						encoder.initialize(8, detail.length);
 						for (int i=0; i<detail.length; i++)
 							encoder.write(detail[i]);
-						encoder.finalize();
+						encoder.finish();
 
 						theWriter.write("</"+cDetailID+">");
 						theWriter.newLine();

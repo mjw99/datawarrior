@@ -36,14 +36,13 @@ import org.openmolecules.fx.viewer3d.V3DScene;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Properties;
 
 public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 	public static final String TASK_NAME = "Dock Into Protein Cavity";
 
-	private static final String[] COLUMN_TITLE = {"Docking Score", "Docked Structure", "Docking Pose"};
+	private static final String[] COLUMN_TITLE = {"ChemPLP Docking Score", "Docked Structure", "Docking Pose"};
 	private static final int SCORE_COLUMN = 0;
 	private static final int POSE_COLUMN = 1;
 	private static final int COORDS_COLUMN = 2;
@@ -79,23 +78,21 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 	@Override
 	public JPanel getExtendedDialogContent() {
 		int gap = HiDPIHelper.scale(8);
-		double[][] size = { {TableLayout.PREFERRED}, {TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED} };
+		double[][] size = { {TableLayout.PREFERRED, TableLayout.FILL}, {TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, TableLayout.FILL} };
 
 		mCheckBoxProtonate = new JCheckBox("Use likely ligand protonation states");
 
-		EnumSet<V3DScene.ViewerSettings> settings = V3DScene.CONFORMER_VIEW_MODE;
-		settings.add(V3DScene.ViewerSettings.EDITING);
-		mConformerPanel = new JFXMolViewerPanel(false, settings);
+		mConformerPanel = new JFXMolViewerPanel(false, V3DScene.CONFORMER_EDIT_MODE);
 		mConformerPanel.setPopupMenuController(new EditableLargeMolMenuController(mConformerPanel));
 		mConformerPanel.adaptToLookAndFeelChanges();
-//		mConformerPanel.setBackground(new java.awt.Color(24, 24, 96));
 		mConformerPanel.setPreferredSize(new Dimension(HiDPIHelper.scale(320), HiDPIHelper.scale(240)));
 
 		JPanel ep = new JPanel();
 		ep.setLayout(new TableLayout(size));
 		ep.add(mCheckBoxProtonate, "0,0");
 		ep.add(new JLabel("Protein cavity with natural ligand"), "0,2");
-		ep.add(mConformerPanel, "0,4");
+
+		ep.add(mConformerPanel, "0,4,1,5");
 		return ep;
 		}
 

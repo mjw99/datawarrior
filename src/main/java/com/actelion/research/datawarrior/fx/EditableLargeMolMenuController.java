@@ -3,7 +3,8 @@ package com.actelion.research.datawarrior.fx;
 import com.actelion.research.chem.*;
 import com.actelion.research.chem.conf.HydrogenAssembler;
 import com.actelion.research.chem.io.Mol2FileParser;
-import com.actelion.research.chem.io.pdb.parser.PDBCoordEntryFile;
+import com.actelion.research.chem.io.pdb.mmcif.MMCIFParser;
+import com.actelion.research.chem.io.pdb.parser.PDBFileEntry;
 import com.actelion.research.chem.io.pdb.parser.PDBFileParser;
 import com.actelion.research.chem.io.pdb.parser.StructureAssembler;
 import com.actelion.research.gui.FileHelper;
@@ -74,11 +75,6 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 			popup.getItems().add(itemLoadLigand);
 			popup.getItems().add(new SeparatorMenuItem());
 		}
-		if (type == V3DPopupMenuController.TYPE_VIEW) {
-			javafx.scene.control.CheckMenuItem itemShowInteractions = new javafx.scene.control.CheckMenuItem("Show Interactions");
-			itemShowInteractions.setOnAction(e -> toggleShowInteractions(itemShowInteractions));
-			popup.getItems().add(itemShowInteractions);
-		}
 	}
 
 	@Override
@@ -95,10 +91,14 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 
 	private void loadFromPDBFile() {
 		SwingUtilities.invokeLater(() -> {
-			File selectedFile = FileHelper.getFile(mConformerPanel, "Choose PDB-File", FileHelper.cFileTypePDB);
+			File selectedFile = FileHelper.getFile(mConformerPanel, "Choose PDB/MMCIF-File", FileHelper.cFileTypePDB | FileHelper.cFileTypeMMCIF);
 			if (selectedFile != null) {
 				try {
-					addProteinAndLigand(new PDBFileParser().parse(selectedFile));
+					int fileType = FileHelper.getFileType(selectedFile);
+					if (fileType == FileHelper.cFileTypePDB)
+						addProteinAndLigand(new PDBFileParser().parse(selectedFile));
+					else if (fileType == FileHelper.cFileTypeMMCIF)
+						addProteinAndLigand(MMCIFParser.parse(selectedFile));
 				}
 				catch (Exception e) {
 					showMessageInEDT(e.getMessage());
@@ -114,7 +114,7 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 				String pdbCode = JOptionPane.showInputDialog(mConformerPanel, "PDB Entry Code?");
 				if (pdbCode != null && !pdbCode.trim().isEmpty()) {
 					try {
-						addProteinAndLigand(new PDBFileParser().getFromPDB(pdbCode.trim()));
+						addProteinAndLigand(MMCIFParser.getFromPDB(pdbCode.trim()));
 					}
 					catch (Exception e) {
 						showMessageInEDT("Couldn't retrieve file from PDB-database: '"+e.getMessage()+"'.\nHowever that file may by available for manual download from 'https://www.rcsb.org'");
@@ -142,15 +142,17 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 		catch (Exception ie) {}
 	}
 
-	private void addProteinAndLigand(PDBCoordEntryFile entryFile) {
-		Map<String, List<Molecule3D>> map = entryFile.extractMols(false);
+	private void addProteinAndLigand(PDBFileEntry entryFile) {
+		Map<String, List<Molecule3D>> map = entryFile.extractMols(true);
 		List<Molecule3D> ligands = map.get(StructureAssembler.LIGAND_GROUP);
-		if (ligands == null || ligands.isEmpty()) {
-			map = entryFile.extractMols(true);
-			ligands = map.get(StructureAssembler.LIGAND_GROUP);
-			if (ligands != null && !ligands.isEmpty())
-				JOptionPane.showMessageDialog(mConformerPanel, "Only covalent ligand(s) were found and disconnected from the protein structure.");
-		}
+
+		int covalentCount = 0;
+		if (ligands != null)
+			for (Molecule3D ligand : ligands)
+				if (ligand.isCovalentLigand())
+					covalentCount++;
+		if (covalentCount != 0)
+			JOptionPane.showMessageDialog(mConformerPanel, covalentCount+" of "+ligands.size()+" ligands were covalently bound and disconnected from the protein structure.");
 
 		List<Molecule3D> proteins = map.get(StructureAssembler.PROTEIN_GROUP);
 
@@ -257,7 +259,7 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 			File selectedFile = FileHelper.getFile(mConformerPanel, title, fileTypes);
 			if (selectedFile != null) {
 				StereoMolecule mol = null;
-				if (FileHelper.getFileType(selectedFile.getName()) == FileHelper.cFileTypeMOL) {
+				if (FileHelper.getFileType(selectedFile) == FileHelper.cFileTypeMOL) {
 					mol = new MolfileParser().getCompactMolecule(selectedFile);
 				}
 				else {  // MOL2
@@ -279,11 +281,5 @@ public class EditableLargeMolMenuController implements V3DPopupMenuController {
 				}
 			}
 		});
-	}
-
-	private void toggleShowInteractions(javafx.scene.control.CheckMenuItem item) {
-		V3DScene scene = mConformerPanel.getV3DScene();
-		boolean isShowInteractions = scene.isShowInteractions();
-		scene.setShowInteractions(!isShowInteractions);
 	}
 }

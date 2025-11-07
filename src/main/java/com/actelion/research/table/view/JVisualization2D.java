@@ -4999,7 +4999,7 @@ public class JVisualization2D extends JVisualization {
 		if (mCurveInfo != newInfo
 		 || mCurveSplitCategoryColumn != splitCurveColumn
 		 || rowList != mCurveRowList) {
-			if (splitByCategory != ((mCurveInfo & cCurveSplitByCategory) != 0)
+			if (splitByCategory == ((mCurveInfo & cCurveSplitByCategory) == 0)
 			 || splitCurveColumn != mCurveSplitCategoryColumn
 			 || rowList != mCurveRowList
 			 || (mode != cCurveModeByFormulaShow && mode != cCurveModeByFormulaHide))
