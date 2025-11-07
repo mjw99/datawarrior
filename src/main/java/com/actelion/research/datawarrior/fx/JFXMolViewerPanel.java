@@ -376,7 +376,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 			else
 				mCavitySideChainMode = mode;
 			Platform.runLater(() -> {
-				mScene.setShowInteractions(mode != V3DMolecule.SIDECHAIN_MODE_NONE);
+				mScene.setSuspendInteractions(mode == V3DMolecule.SIDECHAIN_MODE_NONE);
 				mCavityMol.setSideChainMode(mode);
 			} );
 		}
@@ -553,8 +553,17 @@ public class JFXMolViewerPanel extends JFXPanel {
 			int r = bg.getRed();
 			int g = bg.getGreen();
 			int b = bg.getBlue();
-			mScene.setFill(Color.rgb(r, g, b, 1));
+			mScene.setBackground(Color.rgb(r, g, b, 1), true);
 		});
+	}
+
+	public String getBackgroundColor() {
+		return mScene.isDefaultBackground() ? null : toRGBString(mScene.getBackground());
+	}
+
+	public void setBackgroundColor(String color) {
+		Color bg = color.equals("none") ? null : Color.valueOf(color);
+		Platform.runLater(() -> mScene.setBackground(bg, false) );
 	}
 
 	public void adaptToLookAndFeelChanges() {
@@ -801,7 +810,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 					return;
 
 				mScene.reviveAnimation();	// just in case, there was a stopped animation
-				mScene.setShowInteractions(sideChainMode != V3DMolecule.SIDECHAIN_MODE_NONE);
+				mScene.setSuspendInteractions(sideChainMode == V3DMolecule.SIDECHAIN_MODE_NONE);
 			}
 
 			SwingUtilities.invokeLater(() -> fireStructureChanged());
