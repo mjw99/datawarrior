@@ -39,6 +39,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.TreeMap;
 
 public class PluginHelper implements IPluginHelper {
@@ -51,6 +52,7 @@ public class PluginHelper implements IPluginHelper {
 	private int[] mColumnType;
 	private StereoMolecule mMol;
 	private TreeMap<Integer,Integer> mCoordinateColumnMap;
+	private Properties mAnyPurposeProperties;
 
 	public PluginHelper(DataWarrior application, DETaskPluginTask task, ProgressController pl) {
 		mApplication = application;
@@ -254,6 +256,14 @@ public class PluginHelper implements IPluginHelper {
 	}
 
 	@Override
+	public void initializeNewRows(int newRowCount) {
+		if (mProgressController.threadMustDie())
+			return;
+
+		mSourceTableModel.addNewRows(newRowCount, true);
+	}
+
+	@Override
 	public void initializeData(int columnCount, int rowCount, String newWindowName) {
 		if (mProgressController.threadMustDie())
 			return;
@@ -404,6 +414,14 @@ public class PluginHelper implements IPluginHelper {
 	}
 
 	@Override
+	public void finalizeNewRows(int firstRow) {
+		if (mProgressController.threadMustDie())
+			return;
+
+		mTargetTableModel.finalizeNewRows(firstRow, mProgressController);
+	}
+
+	@Override
 	public void runMacro(String macro) {
 		if (macro.startsWith(DEMacro.MACRO_START)) {
 			try {
@@ -445,5 +463,18 @@ public class PluginHelper implements IPluginHelper {
 	@Override
 	public boolean isCancelled() {
 		return mProgressController.threadMustDie();
+	}
+
+	@Override
+	public String getAnyPurposeProperty(String key) {
+		return mAnyPurposeProperties == null ? null : mAnyPurposeProperties.getProperty(key);
+	}
+
+	@Override
+	public void setAnyPurposeProperty(String key, String value) {
+		if (mAnyPurposeProperties == null)
+			mAnyPurposeProperties = new Properties();
+
+		mAnyPurposeProperties.setProperty(key, value);
 	}
 }
