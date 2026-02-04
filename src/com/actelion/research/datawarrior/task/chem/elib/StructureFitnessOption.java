@@ -129,15 +129,8 @@ public class StructureFitnessOption extends FitnessOption {
 
 	@Override
 	public float evaluateFitness(float propertyValue) {
-		boolean isSimilar = (mSearchType == 0);
-
-		// consider sim**2 to value those changes higher where we already have high similarities
-		// return isSimilar ? propertyValue*propertyValue : 2.0*propertyValue - propertyValue*propertyValue;
-
-		if (isSimilar)
-			return propertyValue;
-		else
-			// consider similarities lower than 50% as fully optimal
-			return (propertyValue >= 0.5) ? 1f : propertyValue * 2f;
+		// take plain similarities and dissimilarities as they are;
+		// Dissimilarities are calculated as inverted and scaled similarities in calculateProperty()
+		return propertyValue;
 		}
 	}

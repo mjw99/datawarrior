@@ -98,7 +98,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 		mSingleConformerSurfaceTransparency = 0.1;
 
 		mCavityConstructionMode = MoleculeArchitect.CONSTRUCTION_MODE_WIRES;
-		mCavityHydrogenMode = MoleculeArchitect.HYDROGEN_MODE_ALL;
+		mCavityHydrogenMode = MoleculeArchitect.HYDROGEN_MODE_POLAR;
 		mCavityRibbonMode = Ribbons.MODE_NONE;
 		mCavitySideChainMode = V3DMolecule.SIDECHAIN_MODE_NEAR_LIGAND;
 		mCavitySurfaceMode = V3DMolecule.SURFACE_MODE_FILLED;
