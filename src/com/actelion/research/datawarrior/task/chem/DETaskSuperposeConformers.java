@@ -33,6 +33,8 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 	private String[] mConformerIDCode;
 	private StereoMolecule[] mConformer;
 	private final boolean mIsFlexible;
+	private PheSAAlignmentOptimizer[] mAlignmentOptimizer;
+	private Coordinates[] mCenterOfGravity;
 
 	public DETaskSuperposeConformers(DEFrame parent, boolean flexible) {
 		super(parent, flexible ? DESCRIPTOR_NONE : DESCRIPTOR_3D_COORDINATES, false, true);
@@ -187,8 +189,17 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 	@Override
 	protected boolean preprocessRows(Properties configuration) {
 		mConformer = getConformers(configuration);
+		if (mConformer != null) {
+			mAlignmentOptimizer = new PheSAAlignmentOptimizer[mConformer.length];
+			mCenterOfGravity = new Coordinates[mConformer.length];
+			for (int i = 0; i<mConformer.length; i++) {
+				mCenterOfGravity[i] = mConformer[i].getCenterOfGravity();
+				mConformer[i].translate(-mCenterOfGravity[i].x, -mCenterOfGravity[i].y, -mCenterOfGravity[i].z);
+				mAlignmentOptimizer[i] = new PheSAAlignmentOptimizer(mConformer[i], 0.5);
+				}
+			}
 		return super.preprocessRows(configuration);
-	}
+		}
 
 	@Override
 	public void processRow(int row, int firstNewColumn, StereoMolecule containerMol, int threadIndex) {
@@ -198,7 +209,8 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 			byte[] coords = (byte[])record.getData(getCoordinates3DColumn());
 			if (mIsFlexible || coords != null) {
 				int targetColumn = firstNewColumn;
-				for (StereoMolecule conformer : mConformer) {
+				for (int i=0; i<mConformer.length; i++) {
+					StereoMolecule refConformer = mConformer[i];
 					Conformer bestConformer = null;
 					double bestFit = 0.0f;
 
@@ -217,10 +229,10 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 						 && new ConformerGenerator().getOneConformerAsMolecule(containerMol) == null)
 							break;
 
-						double fit = PheSAAlignmentOptimizer.alignTwoMolsInPlace(conformer, containerMol, 0.5, this);
+						double fit = mAlignmentOptimizer[i].alignMoleculeInPlace(containerMol, this);
 
 						if (mIsFlexible) {
-							FlexibleShapeAlignment fsa = new FlexibleShapeAlignment(conformer, containerMol);
+							FlexibleShapeAlignment fsa = new FlexibleShapeAlignment(refConformer, containerMol);
 							fit = fsa.align()[0];	// WARNING: refMol must be centered for the scoring to work!!!
 							}
 						if (bestFit<fit) {
@@ -230,6 +242,7 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 
 						if (bestConformer != null) {
 							bestConformer.toMolecule(containerMol);
+							containerMol.translate(mCenterOfGravity[i].x, mCenterOfGravity[i].y, mCenterOfGravity[i].z);
 							Canonizer canonizer = new Canonizer(containerMol);
 							getTableModel().setTotalValueAt(canonizer.getIDCode(), row, targetColumn);
 							getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(true), row, targetColumn + 1);
