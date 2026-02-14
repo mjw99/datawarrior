@@ -29,6 +29,7 @@ import com.actelion.research.table.model.CompoundTableModel;
 import info.clearthought.layout.TableLayout;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Properties;
@@ -188,39 +189,99 @@ public abstract class DETaskAbstractFromChemistry extends ConfigurableTask imple
 		return configuration;
 		}
 
+//	@Override
+//	public JPanel createDialogContent() {
+//		JPanel extentionPanel = getExtendedDialogContent();
+//
+//		double[] sizeY = new double[3 + (mChildColumnClass != DESCRIPTOR_NONE? 2:0)
+//		                              + (extentionPanel != null? 4:0)
+//									  + (mEditableColumnNames? 2*getNewColumnCount() : 0)];
+//
+//		int gap = HiDPIHelper.scale(8);
+//		int index = 0;
+//		sizeY[index++] = gap;
+//		sizeY[index++] = TableLayout.PREFERRED;
+//		if (mChildColumnClass != DESCRIPTOR_NONE) {
+//			sizeY[index++] = gap;
+//			sizeY[index++] = TableLayout.PREFERRED;
+//			}
+//		if (extentionPanel != null) {
+//			sizeY[index++] = gap+gap>>1;
+//			sizeY[index++] = TableLayout.PREFERRED;
+//			sizeY[index++] = TableLayout.FILL;
+//			sizeY[index++] = gap;
+//			}
+//		if (mEditableColumnNames) {
+//			for (int i=0; i<getNewColumnCount(); i++) {
+//				sizeY[index++] = gap>>1;
+//				sizeY[index++] = TableLayout.PREFERRED;
+//				}
+//			}
+//		sizeY[index++] = gap;
+//		double[][] size = { {gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, TableLayout.FILL, gap}, sizeY };
+//
+//		JPanel content = new JPanel();
+//		content.setLayout(new TableLayout(size));
+//
+//		int[] structureColumn = getCompatibleChemistryColumnList();
+//
+//		// create components
+//		mComboBoxStructureColumn = new JComboBox<>();
+//		if (structureColumn != null)
+//			for (int i=0; i<structureColumn.length; i++)
+//				mComboBoxStructureColumn.addItem(mTableModel.getColumnTitle(structureColumn[i]));
+//		content.add(new JLabel(getTypeName()+" column:"), "1,1");
+//		content.add(mComboBoxStructureColumn, "3,1");
+//		mComboBoxStructureColumn.setEditable(!isInteractive());
+//		mComboBoxStructureColumn.addActionListener(this);
+//
+//		index = 3;
+//		if (mChildColumnClass != DESCRIPTOR_NONE) {
+//			mComboBoxChildColumn = new JComboBox<>();
+//			populateComboBoxChildColumn(structureColumn == null? -1 : structureColumn[0]);
+//			String text = (mChildColumnClass == DESCRIPTOR_3D_COORDINATES) ?
+//					"3D-Coordinates:" : "Descriptor:";
+//			content.add(new JLabel(text), "1,"+index);
+//			content.add(mComboBoxChildColumn, "3,"+index);
+//			index += 2;
+//			}
+//
+//		if (extentionPanel != null) {
+//			content.add(extentionPanel, "1,"+index+",4,"+(index+1));
+//			index += 4;
+//			}
+//
+//		if (mEditableColumnNames) {
+//			mTextFieldColumnName = new JTextField[getNewColumnCount()];
+//			for (int i=0; i<getNewColumnCount(); i++) {
+//				mTextFieldColumnName[i] = new JTextField();
+//				content.add(new JLabel("New column name:"), "1,"+index);
+//				content.add(mTextFieldColumnName[i], "3,"+index);
+//				index += 2;
+//				}
+//			}
+//
+//		return content;
+//		}
+
 	@Override
 	public JPanel createDialogContent() {
 		JPanel extentionPanel = getExtendedDialogContent();
 
-		double[] sizeY = new double[3 + (mChildColumnClass != DESCRIPTOR_NONE? 2:0)
-		                              + (extentionPanel != null? 4:0)
-									  + (mEditableColumnNames? 2*getNewColumnCount() : 0)];
+		double[] sizeYN = new double[3 + (mChildColumnClass != DESCRIPTOR_NONE? 2:0)];
 
 		int gap = HiDPIHelper.scale(8);
 		int index = 0;
-		sizeY[index++] = gap;
-		sizeY[index++] = TableLayout.PREFERRED;
+		sizeYN[index++] = gap;
+		sizeYN[index++] = TableLayout.PREFERRED;
 		if (mChildColumnClass != DESCRIPTOR_NONE) {
-			sizeY[index++] = gap;
-			sizeY[index++] = TableLayout.PREFERRED;
+			sizeYN[index++] = gap;
+			sizeYN[index++] = TableLayout.PREFERRED;
 			}
-		if (extentionPanel != null) {
-			sizeY[index++] = gap+gap>>1;
-			sizeY[index++] = TableLayout.PREFERRED;
-			sizeY[index++] = TableLayout.FILL;
-			sizeY[index++] = gap;
-			}
-		if (mEditableColumnNames) {
-			for (int i=0; i<getNewColumnCount(); i++) {
-				sizeY[index++] = gap>>1;
-				sizeY[index++] = TableLayout.PREFERRED;
-				}
-			}
-		sizeY[index++] = gap;
-		double[][] size = { {gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, TableLayout.FILL, gap}, sizeY };
-
-		JPanel content = new JPanel();
-		content.setLayout(new TableLayout(size));
+		sizeYN[index++] = gap;
+		double[][] sizeN = { {gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, TableLayout.FILL, gap}, sizeYN };
+		JPanel panelN = new JPanel();
+		panelN.setLayout(new TableLayout(sizeN));
 
 		int[] structureColumn = getCompatibleChemistryColumnList();
 
@@ -229,8 +290,8 @@ public abstract class DETaskAbstractFromChemistry extends ConfigurableTask imple
 		if (structureColumn != null)
 			for (int i=0; i<structureColumn.length; i++)
 				mComboBoxStructureColumn.addItem(mTableModel.getColumnTitle(structureColumn[i]));
-		content.add(new JLabel(getTypeName()+" column:"), "1,1");
-		content.add(mComboBoxStructureColumn, "3,1");
+		panelN.add(new JLabel(getTypeName()+" column:"), "1,1");
+		panelN.add(mComboBoxStructureColumn, "3,1");
 		mComboBoxStructureColumn.setEditable(!isInteractive());
 		mComboBoxStructureColumn.addActionListener(this);
 
@@ -240,25 +301,49 @@ public abstract class DETaskAbstractFromChemistry extends ConfigurableTask imple
 			populateComboBoxChildColumn(structureColumn == null? -1 : structureColumn[0]);
 			String text = (mChildColumnClass == DESCRIPTOR_3D_COORDINATES) ?
 					"3D-Coordinates:" : "Descriptor:";
-			content.add(new JLabel(text), "1,"+index);
-			content.add(mComboBoxChildColumn, "3,"+index);
+			panelN.add(new JLabel(text), "1,"+index);
+			panelN.add(mComboBoxChildColumn, "3,"+index);
 			index += 2;
 			}
 
+		JPanel panelC = null;
 		if (extentionPanel != null) {
-			content.add(extentionPanel, "1,"+index+",4,"+(index+1));
-			index += 4;
+			double[][] sizeC = { {gap, TableLayout.FILL, gap}, {gap, TableLayout.FILL, gap} };
+			panelC = new JPanel();
+			panelC.setLayout(new TableLayout(sizeC));
+			panelC.add(extentionPanel, "1,1");
 			}
 
+		JPanel panelS = null;
 		if (mEditableColumnNames) {
+			double[] sizeYS = new double[2*getNewColumnCount()+1];
+			index = 0;
+			for (int i=0; i<getNewColumnCount(); i++) {
+				sizeYS[index++] = gap>>1;
+				sizeYS[index++] = TableLayout.PREFERRED;
+			}
+			sizeYS[index++] = gap;
+			double[][] sizeS = { {gap, TableLayout.PREFERRED, gap>>1, TableLayout.PREFERRED, TableLayout.FILL, gap}, sizeYS };
+			panelS = new JPanel();
+			panelS.setLayout(new TableLayout(sizeS));
+
 			mTextFieldColumnName = new JTextField[getNewColumnCount()];
+			index = 1;
 			for (int i=0; i<getNewColumnCount(); i++) {
 				mTextFieldColumnName[i] = new JTextField();
-				content.add(new JLabel("New column name:"), "1,"+index);
-				content.add(mTextFieldColumnName[i], "3,"+index);
+				panelS.add(new JLabel("New column name:"), "1,"+index);
+				panelS.add(mTextFieldColumnName[i], "3,"+index);
 				index += 2;
 				}
 			}
+
+		JPanel content = new JPanel();
+		content.setLayout(new BorderLayout());
+		content.add(panelN, BorderLayout.NORTH);
+		if (panelC != null)
+			content.add(panelC, BorderLayout.CENTER);
+		if (panelS != null)
+			content.add(panelS, BorderLayout.SOUTH);
 
 		return content;
 		}

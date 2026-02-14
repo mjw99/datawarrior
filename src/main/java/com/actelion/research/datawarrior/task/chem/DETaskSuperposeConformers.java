@@ -12,6 +12,7 @@ import com.actelion.research.datawarrior.fx.JFXMolViewerPanel;
 import com.actelion.research.gui.hidpi.HiDPIHelper;
 import com.actelion.research.table.model.CompoundRecord;
 import com.actelion.research.util.DoubleFormat;
+import com.actelion.research.util.SortedList;
 import info.clearthought.layout.TableLayout;
 import org.openmolecules.chem.conf.gen.ConformerGenerator;
 import org.openmolecules.fx.viewer3d.V3DScene;
@@ -27,12 +28,16 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 
 	private static final String PROPERTY_CONFORMERS = "conformers";
 	private static final int COLUMNS_PER_CONFORMER = 3;
+	private static final int FLEX_ALIGN_START_CONF_COUNT = 64;	// conformers rigidly aligned as candidates for phesa-flex
+	private static final int FLEX_ALIGN_USED_CONF_COUNT = 4;	// chosen conformers from rigid scrore for potential phesa-flex
 
 	private final DETable mTable;
 	protected JFXMolViewerPanel mConformerPanel;
 	private String[] mConformerIDCode;
 	private StereoMolecule[] mConformer;
 	private final boolean mIsFlexible;
+	private PheSAAlignmentOptimizer[] mAlignmentOptimizer;
+	private Coordinates[] mCenterOfGravity;
 
 	public DETaskSuperposeConformers(DEFrame parent, boolean flexible) {
 		super(parent, flexible ? DESCRIPTOR_NONE : DESCRIPTOR_3D_COORDINATES, false, true);
@@ -143,7 +148,7 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 			getTableModel().setColumnProperty(coords3DColumn, CompoundTableConstants.cColumnPropertySuperposeMolecule, mConformerIDCode[i]);
 
 			int matchColumn = conformerColumn + 2;
-			getTableModel().setColumnName("PheSA Score" + columnNameEnd, matchColumn);
+			getTableModel().setColumnName((mIsFlexible ? "PheSA Flex Score" : "PheSA Rigid Score") + columnNameEnd, matchColumn);
 
 			conformerColumn += COLUMNS_PER_CONFORMER;
 			}
@@ -187,69 +192,125 @@ public class DETaskSuperposeConformers extends DETaskAbstractFromStructure {
 	@Override
 	protected boolean preprocessRows(Properties configuration) {
 		mConformer = getConformers(configuration);
+		if (mConformer != null) {
+			mAlignmentOptimizer = new PheSAAlignmentOptimizer[mConformer.length];
+			mCenterOfGravity = new Coordinates[mConformer.length];
+			for (int i = 0; i<mConformer.length; i++) {
+				mCenterOfGravity[i] = mConformer[i].getCenterOfGravity();
+				mConformer[i].translate(-mCenterOfGravity[i].x, -mCenterOfGravity[i].y, -mCenterOfGravity[i].z);
+				mAlignmentOptimizer[i] = new PheSAAlignmentOptimizer(mConformer[i], 0.5);
+				}
+			}
 		return super.preprocessRows(configuration);
-	}
+		}
 
 	@Override
 	public void processRow(int row, int firstNewColumn, StereoMolecule containerMol, int threadIndex) {
+		if (mIsFlexible)
+			processRowFlex(row, firstNewColumn, containerMol, threadIndex);
+		else
+			processRowRigid(row, firstNewColumn, containerMol, threadIndex);
+		}
+
+	private void processRowRigid(int row, int firstNewColumn, StereoMolecule containerMol, int threadIndex) {
 		CompoundRecord record = getTableModel().getTotalRecord(row);
 		byte[] idcode = (byte[])record.getData(getChemistryColumn());
 		if (idcode != null) {
 			byte[] coords = (byte[])record.getData(getCoordinates3DColumn());
-			if (mIsFlexible || coords != null) {
+			if (coords != null) {
 				int targetColumn = firstNewColumn;
-				for (StereoMolecule conformer : mConformer) {
+				for (int i=0; i<mConformer.length; i++) {
 					Conformer bestConformer = null;
 					double bestFit = 0.0f;
 
 					int coordinateIndex = 0;
-					while (mIsFlexible || coordinateIndex<coords.length) {
-						new IDCodeParser(false).parse(containerMol, idcode, coords, 0, coordinateIndex);
-
+					while (coordinateIndex<coords.length) {
 						try {
+							new IDCodeParser(false).parse(containerMol, idcode, coords, 0, coordinateIndex);
 							MoleculeStandardizer.standardize(containerMol, MoleculeStandardizer.MODE_GET_PARENT);
-							}
+						}
 						catch (Exception e) {
 							break;
-							}
+						}
 
-						if (coords == null
-						 && new ConformerGenerator().getOneConformerAsMolecule(containerMol) == null)
-							break;
-
-						double fit = PheSAAlignmentOptimizer.alignTwoMolsInPlace(conformer, containerMol, 0.5);
-						if (mIsFlexible) {
-							FlexibleShapeAlignment fsa = new FlexibleShapeAlignment(conformer, containerMol);
-							fit = fsa.align()[0];	// WARNING: refMol must be centered for the scoring to work!!!
-							}
-						if (bestFit<fit) {
+						double fit = mAlignmentOptimizer[i].alignMoleculeInPlace(containerMol, this);
+						if (bestFit < fit) {
 							bestFit = fit;
 							bestConformer = new Conformer(containerMol);
-							}
+						}
 
 						if (bestConformer != null) {
 							bestConformer.toMolecule(containerMol);
+							containerMol.translate(mCenterOfGravity[i].x, mCenterOfGravity[i].y, mCenterOfGravity[i].z);
 							Canonizer canonizer = new Canonizer(containerMol);
 							getTableModel().setTotalValueAt(canonizer.getIDCode(), row, targetColumn);
 							getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(true), row, targetColumn + 1);
 							getTableModel().setTotalValueAt(DoubleFormat.toString(bestFit), row, targetColumn + 2);
-							}
-
-						if (mIsFlexible)
-							break;
+						}
 
 						while (coordinateIndex<coords.length) {
 							coordinateIndex++;
 							if (coords[coordinateIndex - 1] == ' ')
 								break;
-							}
 						}
+					}
 
 					targetColumn += COLUMNS_PER_CONFORMER;
-					}
 				}
 			}
 		}
+	}
+
+	private void processRowFlex(int row, int firstNewColumn, StereoMolecule containerMol, int threadIndex) {
+		CompoundRecord record = getTableModel().getTotalRecord(row);
+		byte[] idcode = (byte[])record.getData(getChemistryColumn());
+		if (idcode != null) {
+			new IDCodeParser(false).parse(containerMol, idcode);
+			try {
+				MoleculeStandardizer.standardize(containerMol, MoleculeStandardizer.MODE_GET_PARENT);
+			} catch (Exception e) {}
+
+			int targetColumn = firstNewColumn;
+			for (int i=0; i<mConformer.length; i++) {
+				SortedList<Conformer> candidateList = new SortedList<>((o1, o2) -> -Double.compare(o1.getEnergy(), o2.getEnergy()));
+				ConformerGenerator cg = new ConformerGenerator();
+				cg.initializeConformers(containerMol);
+				while (candidateList.size() < FLEX_ALIGN_START_CONF_COUNT) {
+					if (cg.getNextConformerAsMolecule(containerMol) == null)
+						break;
+
+					double score = mAlignmentOptimizer[i].alignMoleculeInPlace(containerMol, this);
+					Conformer c = new Conformer(containerMol);
+					c.setEnergy(score);
+					candidateList.add(c);
+				}
+
+				if (candidateList.size() != 0) {
+					Conformer bestConformer = candidateList.get(0);
+					double bestFit = bestConformer.getEnergy();
+
+					for (int j=0; j<Math.min(FLEX_ALIGN_USED_CONF_COUNT, candidateList.size()); j++) {
+						FlexibleShapeAlignment fsa = new FlexibleShapeAlignment(mConformer[i], candidateList.get(j).toMolecule());
+						double fit = fsa.align()[0];	// WARNING: refMol must be centered for the scoring to work!!!
+
+						if (bestFit<fit) {
+							bestFit = fit;
+							bestConformer = new Conformer(containerMol);
+						}
+					}
+
+					bestConformer.toMolecule(containerMol);
+					containerMol.translate(mCenterOfGravity[i].x, mCenterOfGravity[i].y, mCenterOfGravity[i].z);
+					Canonizer canonizer = new Canonizer(containerMol);
+					getTableModel().setTotalValueAt(canonizer.getIDCode(), row, targetColumn);
+					getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(true), row, targetColumn + 1);
+					getTableModel().setTotalValueAt(DoubleFormat.toString(bestFit), row, targetColumn + 2);
+				}
+
+				targetColumn += COLUMNS_PER_CONFORMER;
+			}
+		}
+	}
 
 	protected void postprocess(int firstNewColumn) {
 		while (firstNewColumn < getTableModel().getTotalColumnCount()) {

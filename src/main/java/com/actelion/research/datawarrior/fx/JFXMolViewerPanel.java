@@ -97,7 +97,7 @@ public class JFXMolViewerPanel extends JFXPanel {
 		mSingleConformerSurfaceTransparency = 0.1;
 
 		mCavityConstructionMode = MoleculeArchitect.CONSTRUCTION_MODE_WIRES;
-		mCavityHydrogenMode = MoleculeArchitect.HYDROGEN_MODE_ALL;
+		mCavityHydrogenMode = MoleculeArchitect.HYDROGEN_MODE_POLAR;
 		mCavityRibbonMode = Ribbons.MODE_NONE;
 		mCavitySideChainMode = V3DMolecule.SIDECHAIN_MODE_NEAR_LIGAND;
 		mCavitySurfaceMode = V3DMolecule.SURFACE_MODE_FILLED;
@@ -224,12 +224,12 @@ public class JFXMolViewerPanel extends JFXPanel {
 		} );
 	}
 
-	public boolean isAnimate() {
-		return mScene.isAnimate();
+	public int getAnimationMode() {
+		return mScene.getAnimationMode();
 	}
 
-	public void setAnimate(boolean b) {
-		Platform.runLater(() -> mScene.setAnimate(b));
+	public void setAnimationMode(int mode) {
+		Platform.runLater(() -> mScene.setAnimationMode(mode));
 	}
 
 	public String getOverlayMolColor() {
