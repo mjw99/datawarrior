@@ -491,19 +491,20 @@ public class DETaskAdd3DCoordinates extends DETaskAbstractFromStructure {
 		switch (column) {
 		case 0:
 			String title = "3D-"+getTableModel().getColumnTitle(getChemistryColumn());
+			String confCount = (mMaxConformers == 1) ? "" : mMaxConformers+" conformers, ";
 			switch (mAlgorithm) {
 			case ADAPTIVE_RANDOM:
-				return title+" (adaptive torsions, "+MINIMIZE_TITLE[mMinimization]+")";
+				return title+" (adaptive, "+confCount+MINIMIZE_TITLE[mMinimization]+")";
 			case SYSTEMATIC:
-				return title+" (systematic torsions, "+MINIMIZE_TITLE[mMinimization]+")";
+				return title+" (systematic, "+confCount+MINIMIZE_TITLE[mMinimization]+")";
 			case LOW_ENERGY_RANDOM:
-				return title+" (low-energy random, "+MINIMIZE_TITLE[mMinimization]+")";
+				return title+" (low-energy random, "+confCount+MINIMIZE_TITLE[mMinimization]+")";
 			case PURE_RANDOM:
-				return title+" (pure random, "+MINIMIZE_TITLE[mMinimization]+")";
+				return title+" (pure random, "+confCount+MINIMIZE_TITLE[mMinimization]+")";
 			case SELF_ORGANIZED:
-				return title+" (self-organized, "+MINIMIZE_TITLE[mMinimization]+")";
+				return title+" (self-organized, "+confCount+MINIMIZE_TITLE[mMinimization]+")";
 			default:	// should not happen
-				return CompoundTableModel.cColumnType3DCoordinates;
+				return CompoundTableModel.cColumnType3DCoordinates+confCount;
 				}
 		case 1:
 			return "MMFF94 Energy";

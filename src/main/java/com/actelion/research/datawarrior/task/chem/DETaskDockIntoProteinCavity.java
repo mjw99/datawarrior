@@ -42,6 +42,8 @@ import java.util.Properties;
 public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 	public static final String TASK_NAME = "Dock Into Protein Cavity";
 
+	private static final int MAX_POSE_COUNT = 1;	// Typically, this should be 1
+
 	private static final String[] COLUMN_TITLE = {"ChemPLP Docking Score", "Docked Structure", "Docking Pose"};
 	private static final int SCORE_COLUMN = 0;
 	private static final int POSE_COLUMN = 1;
@@ -62,12 +64,12 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 
 	@Override
 	protected int getNewColumnCount() {
-		return 3;
+		return 3*MAX_POSE_COUNT;
 		}
 
 	@Override
 	protected String getNewColumnName(int column) {
-		return COLUMN_TITLE[column];
+		return MAX_POSE_COUNT == 1 ? COLUMN_TITLE[column] : COLUMN_TITLE[column % 3]+" "+(1 + column / 3);
 		}
 
 	@Override
@@ -78,7 +80,8 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 	@Override
 	public JPanel getExtendedDialogContent() {
 		int gap = HiDPIHelper.scale(8);
-		double[][] size = { {TableLayout.PREFERRED, TableLayout.FILL}, {TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, TableLayout.FILL} };
+		double[][] size = { {TableLayout.PREFERRED, TableLayout.FILL},
+				{TableLayout.PREFERRED, 2*gap, TableLayout.PREFERRED, gap, TableLayout.PREFERRED, TableLayout.FILL} };
 
 		mCheckBoxProtonate = new JCheckBox("Use likely ligand protonation states");
 
@@ -103,7 +106,7 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 
 	@Override
 	public String getHelpURL() {
-		return null /* "/html/help/chemistry.html#docking" */;
+		return "/html/help/chemistry.html#docking";
 		}
 
 	@Override
@@ -160,16 +163,20 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 
 	@Override
 	protected void setNewColumnProperties(int firstNewColumn) {
-		getTableModel().setColumnProperty(firstNewColumn+POSE_COLUMN,
-				CompoundTableConstants.cColumnPropertySpecialType, CompoundTableConstants.cColumnTypeIDCode);
-		getTableModel().setColumnProperty(firstNewColumn+COORDS_COLUMN,
-				CompoundTableConstants.cColumnPropertySpecialType, CompoundTableConstants.cColumnType3DCoordinates);
-		getTableModel().setColumnProperty(firstNewColumn+COORDS_COLUMN,
-				CompoundTableConstants.cColumnPropertyParentColumn, COLUMN_TITLE[POSE_COLUMN]);
-		getTableModel().setColumnProperty(firstNewColumn+COORDS_COLUMN,
-				CompoundTableConstants.cColumnPropertyProteinCavity, getTaskConfiguration().getProperty(PROPERTY_CAVITY));
-		getTableModel().setColumnProperty(firstNewColumn+COORDS_COLUMN,
-				CompoundTableConstants.cColumnPropertyNaturalLigand, getTaskConfiguration().getProperty(PROPERTY_LIGAND));
+		for (int i=0; i<MAX_POSE_COUNT; i++) {
+			getTableModel().setColumnProperty(firstNewColumn + POSE_COLUMN,
+					CompoundTableConstants.cColumnPropertySpecialType, CompoundTableConstants.cColumnTypeIDCode);
+			getTableModel().setColumnProperty(firstNewColumn + COORDS_COLUMN,
+					CompoundTableConstants.cColumnPropertySpecialType, CompoundTableConstants.cColumnType3DCoordinates);
+			getTableModel().setColumnProperty(firstNewColumn + COORDS_COLUMN,
+					CompoundTableConstants.cColumnPropertyParentColumn, getTableModel().getColumnTitleNoAlias(firstNewColumn + POSE_COLUMN));
+			getTableModel().setColumnProperty(firstNewColumn + COORDS_COLUMN,
+					CompoundTableConstants.cColumnPropertyProteinCavity, getTaskConfiguration().getProperty(PROPERTY_CAVITY));
+			getTableModel().setColumnProperty(firstNewColumn + COORDS_COLUMN,
+					CompoundTableConstants.cColumnPropertyNaturalLigand, getTaskConfiguration().getProperty(PROPERTY_LIGAND));
+
+			firstNewColumn += 3;
+			}
 		}
 
 	@Override
@@ -213,13 +220,28 @@ public class DETaskDockIntoProteinCavity extends DETaskAbstractFromStructure {
 				handleMolecule(query);
 
 				try {
-					DockingEngine.DockingResult dockingResult = mDockingEngine[threadIndex].dockMolecule(query);
-					StereoMolecule pose = dockingResult.getPose();
+					if (MAX_POSE_COUNT == 1) {
+						DockingEngine.DockingResult dockingResult = mDockingEngine[threadIndex].dockMolecule(query);
+						StereoMolecule pose = dockingResult.getPose();
 
-					Canonizer canonizer = new Canonizer(pose);
-					getTableModel().setTotalValueAt(canonizer.getIDCode(), row, firstNewColumn+POSE_COLUMN);
-					getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(), row, firstNewColumn+COORDS_COLUMN);
-					getTableModel().setTotalValueAt(DoubleFormat.toString(dockingResult.getScore()), row, firstNewColumn+SCORE_COLUMN);
+						Canonizer canonizer = new Canonizer(pose);
+						getTableModel().setTotalValueAt(canonizer.getIDCode(), row, firstNewColumn+POSE_COLUMN);
+						getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(), row, firstNewColumn+COORDS_COLUMN);
+						getTableModel().setTotalValueAt(DoubleFormat.toString(dockingResult.getScore()), row, firstNewColumn+SCORE_COLUMN);
+						}
+					else {
+						DockingEngine.DockingResult[] dockingResult = mDockingEngine[threadIndex].dockMolecule(query, MAX_POSE_COUNT);
+						for (int i=0; i<dockingResult.length; i++) {
+							StereoMolecule pose = dockingResult[i].getPose();
+
+							Canonizer canonizer = new Canonizer(pose);
+							getTableModel().setTotalValueAt(canonizer.getIDCode(), row, firstNewColumn+POSE_COLUMN);
+							getTableModel().setTotalValueAt(canonizer.getEncodedCoordinates(), row, firstNewColumn+COORDS_COLUMN);
+							getTableModel().setTotalValueAt(DoubleFormat.toString(dockingResult[i].getScore()), row, firstNewColumn+SCORE_COLUMN);
+
+							firstNewColumn += 3;
+							}
+						}
 					}
 				catch (DockingFailedException dfe) {
 					System.out.println(dfe.getMessage());
